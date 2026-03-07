@@ -1,0 +1,142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Default theme (dark) ── */
+:root {
+  --accent: #6366f1;
+  --accent-rgb: 99, 102, 241;
+  --bg-primary: #121212;
+  --bg-secondary: #1E1E1E;
+  --bg-tertiary: #2A2A2A;
+  --bg-elevated: #333333;
+  --text-primary: #FFFFFF;
+  --text-secondary: #B0B0B0;
+  --text-muted: #666666;
+  --border: #333333;
+  --border-subtle: #2A2A2A;
+  --danger: #FF4444;
+  --success: #44BB66;
+  --warning: #FFAA00;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+[data-theme="light"] {
+  --accent: #6366f1;
+  --accent-rgb: 99, 102, 241;
+  --bg-primary: #F5F5F5;
+  --bg-secondary: #EBEBEB;
+  --bg-tertiary: #E0E0E0;
+  --bg-elevated: #D5D5D5;
+  --text-primary: #111111;
+  --text-secondary: #444444;
+  --text-muted: #888888;
+  --border: #CCCCCC;
+  --border-subtle: #DEDEDE;
+  --danger: #DD2222;
+  --success: #228844;
+  --warning: #CC8800;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+[data-theme="woodland"] {
+  --accent: #56a882;
+  --accent-rgb: 86, 168, 130;
+  --bg-primary: #1a0d07;
+  --bg-secondary: #251208;
+  --bg-tertiary: #301709;
+  --bg-elevated: #3d1e0b;
+  --text-primary: #e8d5c4;
+  --text-secondary: #b89a82;
+  --text-muted: #7a5e4a;
+  --border: #3d2010;
+  --border-subtle: #2e1709;
+  --danger: #cc4444;
+  --success: #56a882;
+  --warning: #c8880a;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.6);
+}
+
+[data-theme="axe"] {
+  --accent: #6366f1;
+  --accent-rgb: 99, 102, 241;
+  --bg-primary: #3b3b3b;
+  --bg-secondary: #444444;
+  --bg-tertiary: #4f4f4f;
+  --bg-elevated: #5a5a5a;
+  --text-primary: #F0F0F0;
+  --text-secondary: #C0C0C0;
+  --text-muted: #888888;
+  --border: #5a5a5a;
+  --border-subtle: #4f4f4f;
+  --danger: #FF5555;
+  --success: #55CC77;
+  --warning: #FFBB22;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.35);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.45);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.55);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* ── HSL slider styling ── */
+input[type="range"].hsl-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 12px;
+  border-radius: 6px;
+  outline: none;
+  cursor: pointer;
+  border: none;
+}
+input[type="range"].hsl-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 4px;
+  height: 28px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.5);
+  cursor: pointer;
+}
+input[type="range"].hsl-slider::-moz-range-thumb {
+  width: 4px;
+  height: 28px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.5);
+  cursor: pointer;
+  border: none;
+}
+input[type="range"].hsl-slider::-moz-range-track {
+  background: transparent;
+}
+
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+  }
+}
