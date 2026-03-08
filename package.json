@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:android": "tsc -b && CAPACITOR=true vite build && npx cap sync android",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -27,6 +28,7 @@
     "vite-plugin-pwa": "^1.2.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@eslint/js": "^9.39.1",
     "@types/dom-serial": "^1.0.6",
     "@types/node": "^24.10.1",

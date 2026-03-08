@@ -90,8 +90,8 @@ export function Layout({ children, activeTab, setActiveTab, showSettings, onOpen
       <main className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Mobile header */}
         <header
-          className="md:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-10"
-          style={{ background: "var(--bg-secondary)", borderBottom: "1px solid var(--border)" }}
+          className="md:hidden flex items-center justify-between px-4 sticky top-0 z-10"
+          style={{ background: "var(--bg-secondary)", borderBottom: "1px solid var(--border)", paddingTop: "calc(env(safe-area-inset-top) + 0.75rem)", paddingBottom: "0.75rem" }}
         >
           <h1 className="font-bold" style={{ color: "var(--text-primary)" }}>Pathway</h1>
           <button
@@ -106,7 +106,7 @@ export function Layout({ children, activeTab, setActiveTab, showSettings, onOpen
         {/* Mobile bottom tab bar */}
         <div
           className="md:hidden order-last flex border-t sticky bottom-0 z-10"
-          style={{ background: "var(--bg-secondary)", borderColor: "var(--border)" }}
+          style={{ background: "var(--bg-secondary)", borderColor: "var(--border)", paddingBottom: "env(safe-area-inset-bottom)" }}
         >
           {visibleTabs.map((tab) => {
             const Icon = tab.icon;
