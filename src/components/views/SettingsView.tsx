@@ -72,9 +72,9 @@ function hslToHex(h: number, s: number, l: number): string {
   return `#${f(0)}${f(8)}${f(4)}`;
 }
 
-// Slider value 0–100 ↔ actual S 50–100%
-const sliderToS = (v: number) => 50 + v * 0.5;
-const sToSlider = (s: number) => Math.round(Math.max(0, Math.min(100, (s - 50) * 2)));
+// Slider value 0–100 ↔ actual S 40–100%
+const sliderToS = (v: number) => 40 + v * 0.6;
+const sToSlider = (s: number) => Math.round(Math.max(0, Math.min(100, (s - 40) / 0.6)));
 
 // Slider value 0–100 ↔ actual L 35–80%
 const sliderToL = (v: number) => 35 + v * 0.45;
@@ -350,7 +350,7 @@ export function SettingsView() {
             label="Saturation"
             value={sSlider}
             min={0} max={100}
-            gradient={`linear-gradient(to right, hsl(${hSlider},50%,${actualL}%), hsl(${hSlider},100%,${actualL}%))`}
+            gradient={`linear-gradient(to right, hsl(${hSlider},40%,${actualL}%), hsl(${hSlider},100%,${actualL}%))`}
             onChange={v => applySliders(hSlider, v, lSlider)}
           />
           <SliderRow

@@ -9,6 +9,7 @@ interface Tracker {
   goal: number;
   current: number;
   importance: number;
+  done: boolean;
 }
 
 // ── Parser / Serializer ───────────────────────────────────────────────────────
@@ -25,6 +26,7 @@ function parseTrackers(content: string): Tracker[] {
           goal: cur.goal ?? 100,
           current: cur.current ?? 0,
           importance: cur.importance ?? 1,
+          done: cur.done ?? false,
         });
       }
       cur = { name: line.slice(3).trim() };
@@ -32,9 +34,11 @@ function parseTrackers(content: string): Tracker[] {
       const goal = line.match(/^>\s*Goal:\s*(\d+)/);
       const curr = line.match(/^>\s*Current:\s*(\d+)/);
       const imp  = line.match(/^>\s*Importance:\s*(\d+)/);
+      const done = line.match(/^>\s*Done:\s*true/);
       if (goal) cur.goal       = parseInt(goal[1], 10);
       if (curr) cur.current    = parseInt(curr[1], 10);
       if (imp)  cur.importance = parseInt(imp[1], 10);
+      if (done) cur.done       = true;
     }
   }
   if (cur?.name !== undefined) {
@@ -43,6 +47,7 @@ function parseTrackers(content: string): Tracker[] {
       goal: cur.goal ?? 100,
       current: cur.current ?? 0,
       importance: cur.importance ?? 1,
+      done: cur.done ?? false,
     });
   }
   return trackers;
@@ -52,6 +57,7 @@ function serializeTrackers(trackers: Tracker[]): string {
   let out = "# Trackers\n";
   for (const t of trackers) {
     out += `\n## ${t.name}\n> Goal: ${t.goal}\n> Current: ${t.current}\n> Importance: ${t.importance}\n`;
+    if (t.done) out += `> Done: true\n`;
   }
   return out;
 }
@@ -94,25 +100,39 @@ export function TrackersView() {
     ));
   };
 
+  const completeTracker = (name: string) => {
+    applyTrackers(trackers.map(t => t.name === name ? { ...t, done: true } : t));
+  };
+
+  const declineComplete = (name: string) => {
+    applyTrackers(trackers.map(t =>
+      t.name === name ? { ...t, current: Math.max(0, t.goal - 1) } : t
+    ));
+  };
+
   const handleAddTracker = () => {
     const name = addingName.trim();
     const goal = parseInt(addingGoal, 10);
     if (!name || isNaN(goal) || goal <= 0) return;
-    applyTrackers([...trackers, { name, goal, current: 0, importance: 1 }]);
+    applyTrackers([...trackers, { name, goal, current: 0, importance: 1, done: false }]);
     setAddingName("");
     setAddingGoal("100");
     setShowAddRow(false);
   };
 
   const switchMode = (next: "list" | "markdown") => {
-    if (next === "list") {
-      // Re-parse to sync list state from any markdown edits
-      setMdContent(latestMd.current);
-    }
+    if (next === "list") setMdContent(latestMd.current);
     setMode(next);
   };
 
-  const sorted = [...trackers].sort((a, b) => b.importance - a.importance);
+  // Active trackers only — done ones go to the Done page
+  const sorted = [...trackers]
+    .filter(t => !t.done)
+    .sort((a, b) => {
+      const aDone = a.current >= a.goal ? 1 : 0;
+      const bDone = b.current >= b.goal ? 1 : 0;
+      return aDone - bDone || b.importance - a.importance;
+    });
 
   return (
     <div className="space-y-4 pb-20 animate-in fade-in zoom-in-95 duration-200">
@@ -138,7 +158,7 @@ export function TrackersView() {
               className="py-12 text-center text-sm rounded-xl"
               style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)", color: "var(--text-muted)" }}
             >
-              No trackers yet — add one below or switch to Markdown to write your own.
+              No active trackers — add one below or switch to Markdown to write your own.
             </div>
           )}
 
@@ -148,6 +168,8 @@ export function TrackersView() {
               tracker={t}
               onDecrement={() => updateCurrent(t.name, -1)}
               onIncrement={() => updateCurrent(t.name, +1)}
+              onComplete={() => completeTracker(t.name)}
+              onDecline={() => declineComplete(t.name)}
             />
           ))}
 
@@ -238,29 +260,30 @@ function TrackerCard({
   tracker,
   onDecrement,
   onIncrement,
+  onComplete,
+  onDecline,
 }: {
   tracker: Tracker;
   onDecrement: () => void;
   onIncrement: () => void;
+  onComplete: () => void;
+  onDecline: () => void;
 }) {
   const pct = tracker.goal > 0 ? Math.min(100, (tracker.current / tracker.goal) * 100) : 0;
-  const isDone = tracker.current >= tracker.goal;
+  const atGoal = tracker.current >= tracker.goal;
 
   return (
     <div
       className="rounded-xl px-5 py-4 space-y-3"
       style={{
         background: "var(--bg-secondary)",
-        border: `1px solid ${isDone ? "var(--success)" : "var(--border)"}`,
+        border: `1px solid var(--border)`,
       }}
     >
       {/* Top row: name + importance + controls */}
       <div className="flex items-center gap-3">
         <div className="flex-1 min-w-0">
-          <span
-            className="font-semibold text-sm"
-            style={{ color: isDone ? "var(--success)" : "var(--text-primary)" }}
-          >
+          <span className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
             {tracker.name}
           </span>
           <span
@@ -293,10 +316,10 @@ function TrackerCard({
           </button>
           <button
             onClick={onIncrement}
-            disabled={tracker.current >= tracker.goal}
+            disabled={atGoal}
             className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors disabled:opacity-30"
             style={{ background: "var(--bg-tertiary)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}
-            onMouseEnter={e => { if (tracker.current < tracker.goal) { e.currentTarget.style.background = "var(--accent)"; e.currentTarget.style.color = "#fff"; } }}
+            onMouseEnter={e => { if (!atGoal) { e.currentTarget.style.background = "var(--accent)"; e.currentTarget.style.color = "#fff"; } }}
             onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-tertiary)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
           >
             <Plus size={13} />
@@ -310,11 +333,39 @@ function TrackerCard({
           className="h-full rounded-full transition-all duration-300"
           style={{
             width: `${pct}%`,
-            background: isDone ? "var(--success)" : "var(--accent)",
+            background: atGoal ? "var(--success)" : "var(--accent)",
             boxShadow: pct > 0 ? `0 0 6px rgba(var(--accent-rgb),0.4)` : "none",
           }}
         />
       </div>
+
+      {/* Complete? prompt */}
+      {atGoal && (
+        <div
+          className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm"
+          style={{ background: "rgba(var(--success-rgb, 68,187,102),0.08)", border: "1px solid var(--success)" }}
+        >
+          <span style={{ color: "var(--success)", fontWeight: 600 }}>Complete?</span>
+          <div className="flex gap-2">
+            <button
+              onClick={onDecline}
+              className="px-3 py-1 rounded-md text-xs font-medium transition-colors"
+              style={{ background: "var(--bg-tertiary)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "var(--text-primary)")}
+              onMouseLeave={e => (e.currentTarget.style.color = "var(--text-secondary)")}
+            >
+              Not yet
+            </button>
+            <button
+              onClick={onComplete}
+              className="px-3 py-1 rounded-md text-xs font-medium text-white transition-opacity hover:opacity-90"
+              style={{ background: "var(--success)" }}
+            >
+              Yes, done!
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

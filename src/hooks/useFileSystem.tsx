@@ -51,6 +51,7 @@ interface FileSystemContextType {
   saveDailyMemory: (content: string) => Promise<void>;
   createDailyMemory: (content: string, dateStr: string) => Promise<void>;
   trackersContent: string | null;
+  completedTrackerNames: string[];
   saveTrackersContent: (content: string) => Promise<void>;
   refresh: () => Promise<void>;
   error: string | null;
@@ -64,6 +65,23 @@ const FileSystemContext = createContext<FileSystemContextType | undefined>(
 const DAILY_FILE = "_Daily.md";
 const DAILY_MEMORY_FILE = "_DailyMemory.md";
 const TRACKERS_FILE = "_Trackers.md";
+
+function parseCompletedTrackers(content: string): string[] {
+  const names: string[] = [];
+  let currentName: string | null = null;
+  let isDone = false;
+  for (const line of content.split("\n")) {
+    if (line.startsWith("## ")) {
+      if (currentName && isDone) names.push(currentName);
+      currentName = line.slice(3).trim();
+      isDone = false;
+    } else if (/^>\s*Done:\s*true/.test(line)) {
+      isDone = true;
+    }
+  }
+  if (currentName && isDone) names.push(currentName);
+  return names;
+}
 
 // OPFS singleton
 let opfsRootPromise: Promise<FileSystemDirectoryHandle> | null = null;
@@ -116,6 +134,7 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
   const [dailyArchive, setDailyArchive] = useState<DailyArchiveEntry[]>([]);
   const [dailyMemoryProject, setDailyMemoryProject] = useState<ProjectData | null>(null);
   const [trackersContent, setTrackersContent] = useState<string | null>(null);
+  const [completedTrackerNames, setCompletedTrackerNames] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const loadFiles = useCallback(async () => {
@@ -182,6 +201,7 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
       setDailyArchive(loadedDailyArchive);
       setDailyMemoryProject(loadedDailyMemory);
       setTrackersContent(loadedTrackers);
+      setCompletedTrackerNames(loadedTrackers ? parseCompletedTrackers(loadedTrackers) : []);
       setError(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to read storage";
@@ -407,6 +427,7 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
         dailyMemoryProject,
         createDailyMemory,
         trackersContent,
+        completedTrackerNames,
         saveTrackersContent,
         refresh,
         error,
