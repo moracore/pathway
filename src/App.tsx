@@ -8,15 +8,16 @@ import { GoalView } from "./components/views/GoalView";
 import { DoneView } from "./components/views/DoneView";
 import { ProjectView } from "./components/views/ProjectView";
 import { SettingsView } from "./components/views/SettingsView";
+import { TrackersView } from "./components/views/TrackersView";
 import { useFileSystem } from "./hooks";
 import { useTheme } from "./context/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
 
-export type Tab = "today" | "projects" | "goals" | "done";
+export type Tab = "today" | "projects" | "goals" | "trackers" | "done";
 
 function Dashboard() {
   const { isReady, error } = useFileSystem();
-  const { enableToday, enableGoals } = useTheme();
+  const { enableToday, enableGoals, enableTrackers, enableDone } = useTheme();
   const [activeTab, setActiveTab] = useState<Tab>("projects");
   const [activeProject, setActiveProject] = useState<string | null>(null);
   const [activeGoal, setActiveGoal] = useState<string | null>(null);
@@ -24,9 +25,11 @@ function Dashboard() {
 
   // Reset to "projects" if an enabled feature gets toggled off while active
   useEffect(() => {
-    if (!enableToday && activeTab === "today") setActiveTab("projects");
-    if (!enableGoals && activeTab === "goals") setActiveTab("projects");
-  }, [enableToday, enableGoals, activeTab]);
+    if (!enableToday    && activeTab === "today")    setActiveTab("projects");
+    if (!enableGoals    && activeTab === "goals")    setActiveTab("projects");
+    if (!enableTrackers && activeTab === "trackers") setActiveTab("projects");
+    if (!enableDone     && activeTab === "done")     setActiveTab("projects");
+  }, [enableToday, enableGoals, enableTrackers, enableDone, activeTab]);
 
   const handleSetActiveTab = (tab: Tab) => {
     setActiveProject(null);
@@ -122,12 +125,11 @@ function Dashboard() {
             exit={{ opacity: 0, x: -16 }}
             transition={{ duration: 0.18 }}
           >
-            {activeTab === "today" && <TodayView />}
-            {activeTab === "projects" && (
-              <ProjectsView onSelectProject={setActiveProject} />
-            )}
-            {activeTab === "goals" && <GoalsView onSelectGoal={setActiveGoal} />}
-            {activeTab === "done" && <DoneView onSelectProject={setActiveProject} />}
+            {activeTab === "today"    && <TodayView />}
+            {activeTab === "projects" && <ProjectsView onSelectProject={setActiveProject} />}
+            {activeTab === "goals"    && <GoalsView onSelectGoal={setActiveGoal} />}
+            {activeTab === "trackers" && <TrackersView />}
+            {activeTab === "done"     && <DoneView onSelectProject={setActiveProject} />}
           </motion.div>
         )}
       </AnimatePresence>

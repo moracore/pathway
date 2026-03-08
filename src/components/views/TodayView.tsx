@@ -25,10 +25,12 @@ function TaskItem({
     task,
     checked,
     onToggle,
+    selectionMode,
 }: {
     task: Task;
     checked?: boolean;
     onToggle: () => void;
+    selectionMode?: boolean;
 }) {
   const isChecked = checked ?? task.checked;
   return (
@@ -41,15 +43,15 @@ function TaskItem({
     >
       <button
         className="shrink-0 transition-colors"
-        style={{ color: isChecked ? "var(--success)" : "var(--text-muted)" }}
+        style={{ color: isChecked ? (selectionMode ? "var(--accent)" : "var(--success)") : "var(--text-muted)" }}
       >
         {isChecked ? <CheckCircle2 size={18} /> : <Circle size={18} />}
       </button>
       <span
         className="flex-1 text-sm flex flex-col"
         style={{
-          color: isChecked ? "var(--text-muted)" : "var(--text-primary)",
-          textDecoration: isChecked ? "line-through" : "none",
+          color: isChecked ? (selectionMode ? "var(--text-primary)" : "var(--text-muted)") : "var(--text-primary)",
+          textDecoration: isChecked && !selectionMode ? "line-through" : "none",
         }}
       >
         <span>{task.description}</span>
@@ -334,14 +336,19 @@ export function TodayView() {
                                 {p.projectName}
                             </h3>
                             <div className="rounded-xl overflow-hidden" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-subtle)" }}>
-                                {availableTasks.map(t => (
-                                    <TaskItem 
-                                        key={t.rawLine!}
+                                {p.sections.flatMap((s, sIdx) =>
+                                    s.tasks
+                                        .map((t, tIdx) => ({ task: t, key: `${p.projectName}::${sIdx}::${tIdx}` }))
+                                        .filter(({ task }) => !task.checked)
+                                ).map(({ task: t, key }) => (
+                                    <TaskItem
+                                        key={key}
                                         task={t}
-                                        checked={selectedProjectTasks.has(t.rawLine!)}
+                                        checked={selectedProjectTasks.has(key)}
+                                        selectionMode={true}
                                         onToggle={() => {
                                             const n = new Set(selectedProjectTasks);
-                                            if (n.has(t.rawLine!)) n.delete(t.rawLine!); else n.add(t.rawLine!);
+                                            if (n.has(key)) n.delete(key); else n.add(key);
                                             setSelectedProjectTasks(n);
                                         }}
                                     />

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ChevronUp, ChevronDown, Calendar, FolderKanban, Target, BarChart2, CheckCircle } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -31,6 +31,15 @@ const ACCENT_PRESETS = [
   { name: "Purple",        value: "#AA44FF" },
   { name: "Pink",          value: "#FF44AA" },
 ];
+
+// ── Nav tab metadata ───────────────────────────────────────────────────────────
+
+const NAV_TAB_META: Record<string, { label: string; icon: React.ElementType; alwaysOn: boolean }> = {
+  today:    { label: "Today",    icon: Calendar,     alwaysOn: false },
+  projects: { label: "Projects", icon: FolderKanban, alwaysOn: true  },
+  goals:    { label: "Goals",    icon: Target,       alwaysOn: false },
+  trackers: { label: "Trackers", icon: BarChart2,    alwaysOn: false },
+};
 
 // ── HSL utilities ─────────────────────────────────────────────────────────────
 
@@ -67,13 +76,22 @@ function hslToHex(h: number, s: number, l: number): string {
 const sliderToS = (v: number) => 50 + v * 0.5;
 const sToSlider = (s: number) => Math.round(Math.max(0, Math.min(100, (s - 50) * 2)));
 
-// Slider value 0–100 ↔ actual L 50–80%
-const sliderToL = (v: number) => 50 + v * 0.3;
-const lToSlider = (l: number) => Math.round(Math.max(0, Math.min(100, (l - 50) / 0.3)));
+// Slider value 0–100 ↔ actual L 35–80%
+const sliderToL = (v: number) => 35 + v * 0.45;
+const lToSlider = (l: number) => Math.round(Math.max(0, Math.min(100, (l - 35) / 0.45)));
 
 function slidersFromHex(hex: string): [number, number, number] {
   const [h, s, l] = hexToHsl(hex);
   return [h, sToSlider(s), lToSlider(l)];
+}
+
+// ── Hour formatting ────────────────────────────────────────────────────────────
+
+function formatHour(h: number): string {
+  if (h === 0)  return "12:00 AM";
+  if (h < 12)   return `${h}:00 AM`;
+  if (h === 12) return "12:00 PM";
+  return `${h - 12}:00 PM`;
 }
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
@@ -187,7 +205,10 @@ function SliderRow({
 export function SettingsView() {
   const {
     theme, accentColor, toggleTheme, setAccentColor,
-    enableToday, enableGoals, setEnableToday, setEnableGoals,
+    enableToday, enableGoals, enableTrackers, enableDone,
+    setEnableToday, setEnableGoals, setEnableTrackers, setEnableDone,
+    navOrder, setNavOrder,
+    resetHour, setResetHour,
     apiKey, setApiKey,
   } = useTheme();
 
@@ -226,6 +247,22 @@ export function SettingsView() {
 
   const actualS = Math.round(sliderToS(sSlider));
   const actualL = Math.round(sliderToL(lSlider));
+
+  // ── Nav order helpers ──────────────────────────────────────────────────────
+
+  const enableFlags: Record<string, boolean> = { enableToday, enableGoals, enableTrackers };
+  const setEnableFlags: Record<string, (v: boolean) => void> = {
+    today: setEnableToday, goals: setEnableGoals, trackers: setEnableTrackers,
+  };
+
+  const moveTab = (idx: number, dir: number) => {
+    const next = [...navOrder];
+    const target = idx + dir;
+    if (target < 0 || target >= next.length) return;
+    [next[idx], next[target]] = [next[target], next[idx]];
+    setNavOrder(next);
+  };
+
   return (
     <div style={{ maxWidth: 600, margin: "0 auto", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 32 }}>
       {/* Page title */}
@@ -320,32 +357,121 @@ export function SettingsView() {
             label="Lightness"
             value={lSlider}
             min={0} max={100}
-            gradient={`linear-gradient(to right, hsl(${hSlider},${actualS}%,50%), hsl(${hSlider},${actualS}%,80%))`}
+            gradient={`linear-gradient(to right, hsl(${hSlider},${actualS}%,35%), hsl(${hSlider},${actualS}%,80%))`}
             onChange={v => applySliders(hSlider, sSlider, v)}
           />
         </div>
       </div>
 
-      {/* ── Features ── */}
+      {/* ── Today / Daily Reset ── */}
       <div style={card}>
-        <p style={sectionTitle}>Features</p>
-
+        <p style={sectionTitle}>Daily Reset</p>
         <div style={rowBetween}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 500, color: "var(--text-primary)" }}>Today View</div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Daily task list with archive</div>
+            <div style={{ fontSize: 15, fontWeight: 500, color: "var(--text-primary)" }}>Reset Time</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>New day starts at this hour</div>
           </div>
-          <Toggle value={enableToday} onChange={setEnableToday} />
+          <select
+            value={resetHour}
+            onChange={e => setResetHour(Number(e.target.value))}
+            style={{
+              background: "var(--bg-tertiary)",
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              padding: "6px 10px",
+              fontSize: 13,
+              color: "var(--text-primary)",
+              cursor: "pointer",
+              outline: "none",
+            }}
+          >
+            {Array.from({ length: 24 }, (_, i) => (
+              <option key={i} value={i}>{formatHour(i)}</option>
+            ))}
+          </select>
         </div>
+      </div>
 
+      {/* ── Nav Order ── */}
+      <div style={card}>
+        <p style={sectionTitle}>Nav Order</p>
+
+        {navOrder.map((id, idx) => {
+          const meta = NAV_TAB_META[id];
+          if (!meta) return null;
+          const Icon = meta.icon;
+          const isFirst = idx === 0;
+          const isLast  = idx === navOrder.length - 1;
+          const isEnabled = meta.alwaysOn || (enableFlags[`enable${id.charAt(0).toUpperCase() + id.slice(1)}`] ?? true);
+          const setEnabled = meta.alwaysOn ? null : setEnableFlags[id];
+
+          return (
+            <div key={id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {/* Up / Down arrows */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <button
+                  onClick={() => moveTab(idx, -1)}
+                  disabled={isFirst}
+                  style={{
+                    background: "var(--bg-tertiary)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 4,
+                    width: 22, height: 22,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: isFirst ? "default" : "pointer",
+                    opacity: isFirst ? 0.3 : 1,
+                    color: "var(--text-muted)",
+                  }}
+                >
+                  <ChevronUp size={12} />
+                </button>
+                <button
+                  onClick={() => moveTab(idx, 1)}
+                  disabled={isLast}
+                  style={{
+                    background: "var(--bg-tertiary)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 4,
+                    width: 22, height: 22,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: isLast ? "default" : "pointer",
+                    opacity: isLast ? 0.3 : 1,
+                    color: "var(--text-muted)",
+                  }}
+                >
+                  <ChevronDown size={12} />
+                </button>
+              </div>
+
+              {/* Icon + Label */}
+              <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, color: "var(--text-primary)" }}>
+                <Icon size={16} style={{ color: isEnabled ? "var(--accent)" : "var(--text-muted)", flexShrink: 0 }} />
+                <span style={{ fontSize: 15, fontWeight: 500 }}>{meta.label}</span>
+                {meta.alwaysOn && (
+                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Always on</span>
+                )}
+              </div>
+
+              {/* Visibility toggle (optional tabs only) */}
+              {setEnabled ? (
+                <Toggle value={isEnabled} onChange={setEnabled} />
+              ) : (
+                <div style={{ width: 44 }} />
+              )}
+            </div>
+          );
+        })}
+
+        {/* Done — always last, but removable */}
         <div style={{ height: 1, background: "var(--border-subtle)" }} />
-
-        <div style={rowBetween}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 500, color: "var(--text-primary)" }}>Goals View</div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Long-term goal tracking</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 22 + 22 + 2, flexShrink: 0 }} />
+          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, color: "var(--text-primary)" }}>
+            <CheckCircle size={16} style={{ color: enableDone ? "var(--accent)" : "var(--text-muted)", flexShrink: 0 }} />
+            <span style={{ fontSize: 15, fontWeight: 500 }}>Done</span>
+            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Always last</span>
           </div>
-          <Toggle value={enableGoals} onChange={setEnableGoals} />
+          <Toggle value={enableDone} onChange={setEnableDone} />
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Calendar, FolderKanban, Target, CheckCircle, Settings } from "lucide-react";
+import { Calendar, FolderKanban, Target, CheckCircle, Settings, BarChart2 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import type { Tab } from "../App";
 
@@ -11,21 +11,28 @@ interface LayoutProps {
   onOpenSettings: () => void;
 }
 
-const ALL_TABS = [
-  { id: "today"    as Tab, label: "Today",    icon: Calendar,      optional: true,  key: "enableToday" as const },
-  { id: "projects" as Tab, label: "Projects", icon: FolderKanban,  optional: false, key: null },
-  { id: "goals"    as Tab, label: "Goals",    icon: Target,        optional: true,  key: "enableGoals" as const },
-  { id: "done"     as Tab, label: "Done",     icon: CheckCircle,   optional: false, key: null },
-];
+const TAB_DEFS: Record<string, { id: Tab; label: string; icon: React.ElementType; enableKey: string | null }> = {
+  today:    { id: "today",    label: "Today",    icon: Calendar,     enableKey: "enableToday"    },
+  projects: { id: "projects", label: "Projects", icon: FolderKanban, enableKey: null             },
+  goals:    { id: "goals",    label: "Goals",    icon: Target,       enableKey: "enableGoals"    },
+  trackers: { id: "trackers", label: "Trackers", icon: BarChart2,    enableKey: "enableTrackers" },
+  done:     { id: "done",     label: "Done",     icon: CheckCircle,  enableKey: "enableDone"     },
+};
 
 export function Layout({ children, activeTab, setActiveTab, showSettings, onOpenSettings }: LayoutProps) {
-  const { enableToday, enableGoals } = useTheme();
+  const { enableToday, enableGoals, enableTrackers, enableDone, navOrder } = useTheme();
 
-  const visibleTabs = ALL_TABS.filter((t) => {
-    if (t.key === "enableToday") return enableToday;
-    if (t.key === "enableGoals") return enableGoals;
-    return true;
-  });
+  const flags: Record<string, boolean> = { enableToday, enableGoals, enableTrackers, enableDone };
+
+  // Build ordered tabs: navOrder items (filtered by their enable flag), then done last if enabled
+  const orderedNonDone = navOrder
+    .map(id => TAB_DEFS[id])
+    .filter(Boolean)
+    .filter(t => t.enableKey === null || flags[t.enableKey]);
+
+  const visibleTabs = enableDone
+    ? [...orderedNonDone, TAB_DEFS.done]
+    : orderedNonDone;
 
   return (
     <div
@@ -126,7 +133,7 @@ export function Layout({ children, activeTab, setActiveTab, showSettings, onOpen
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 overflow-y-auto scrollbar-none">
           <div className="p-4 md:p-6 max-w-5xl mx-auto w-full">
             {children}
           </div>

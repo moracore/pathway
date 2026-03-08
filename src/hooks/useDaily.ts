@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useFileSystem } from "./useFileSystem";
+import { useTheme } from "../context/ThemeContext";
 import { type Task } from "../lib/parser";
 
 const EMPTY_DAILY = "## Today\n\n";
@@ -26,25 +27,25 @@ export function useDaily() {
     projects,
     isReady: fsReady,
   } = useFileSystem();
+  const { resetHour } = useTheme();
 
   // Prevent checkRolloverRequired from firing twice in StrictMode / rapid re-renders
   const checkInProgress = useRef(false);
-  
+
   const [flowState, setFlowState] = useState<DailyFlowState>("idle");
   const [unfinishedTasks, setUnfinishedTasks] = useState<Task[]>([]);
   const [selectedUnfinished, setSelectedUnfinished] = useState<Set<string>>(new Set());
-  
+
   const [selectedProjects, setSelectedProjects] = useState<Set<string>>(new Set());
   const [selectedProjectTasks, setSelectedProjectTasks] = useState<Set<string>>(new Set());
-  
-  const [rolloverHour, setRolloverHour] = useState(3);
+
   const [logicalToday, setLogicalToday] = useState("");
 
   const checkRolloverRequired = useCallback(async () => {
     if (!fsReady || checkInProgress.current) return;
     checkInProgress.current = true;
 
-    const todayStr = getLogicalToday(rolloverHour);
+    const todayStr = getLogicalToday(resetHour);
     setLogicalToday(todayStr);
 
     if (!dailyMemoryProject) {
@@ -91,7 +92,7 @@ export function useDaily() {
     }
 
     checkInProgress.current = false;
-  }, [fsReady, dailyMemoryProject, rolloverHour, projects, createDailyMemory]);
+  }, [fsReady, dailyMemoryProject, resetHour, projects, createDailyMemory]);
 
   useEffect(() => {
     checkRolloverRequired();
@@ -117,9 +118,10 @@ export function useDaily() {
       if (!proj) continue;
 
       let addedHeader = false;
-      for (const section of proj.sections) {
-        for (const task of section.tasks) {
-          if (selectedProjectTasks.has(task.rawLine as string)) {
+      for (const [sIdx, section] of proj.sections.entries()) {
+        for (const [tIdx, task] of section.tasks.entries()) {
+          const key = `${projName}::${sIdx}::${tIdx}`;
+          if (selectedProjectTasks.has(key)) {
             if (!addedHeader) {
               newContent += `## ${projName}\n`;
               addedHeader = true;
@@ -152,8 +154,6 @@ export function useDaily() {
     setSelectedUnfinished,
     setSelectedProjects,
     setSelectedProjectTasks,
-    rolloverHour,
-    setRolloverHour,
     logicalToday,
     finishFlow,
   };

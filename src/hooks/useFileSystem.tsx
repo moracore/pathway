@@ -50,6 +50,8 @@ interface FileSystemContextType {
   dailyMemoryProject: ProjectData | null;
   saveDailyMemory: (content: string) => Promise<void>;
   createDailyMemory: (content: string, dateStr: string) => Promise<void>;
+  trackersContent: string | null;
+  saveTrackersContent: (content: string) => Promise<void>;
   refresh: () => Promise<void>;
   error: string | null;
 }
@@ -61,6 +63,7 @@ const FileSystemContext = createContext<FileSystemContextType | undefined>(
 // Constants
 const DAILY_FILE = "_Daily.md";
 const DAILY_MEMORY_FILE = "_DailyMemory.md";
+const TRACKERS_FILE = "_Trackers.md";
 
 // OPFS singleton
 let opfsRootPromise: Promise<FileSystemDirectoryHandle> | null = null;
@@ -112,6 +115,7 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
   const [dailyTasks, setDailyTasks] = useState<Task[]>([]);
   const [dailyArchive, setDailyArchive] = useState<DailyArchiveEntry[]>([]);
   const [dailyMemoryProject, setDailyMemoryProject] = useState<ProjectData | null>(null);
+  const [trackersContent, setTrackersContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadFiles = useCallback(async () => {
@@ -124,6 +128,7 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
       let loadedDailyTasks: Task[] = [];
       let loadedDailyArchive: DailyArchiveEntry[] = [];
       let loadedDailyMemory: ProjectData | null = null;
+      let loadedTrackers: string | null = null;
       const completed: ProjectData[] = [];
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -149,6 +154,8 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
         } else if (name === DAILY_MEMORY_FILE) {
           loadedDailyMemory = parseProjectFile("DailyMemory", content);
           loadedDailyMemory.lastModified = Date.now();
+        } else if (name === TRACKERS_FILE) {
+          loadedTrackers = content;
         } else if (!name.startsWith("_")) {
           // Ignore all internal underscore-prefixed files (e.g. old _Goals.md)
           const project = parseProjectFile(name.replace(".md", ""), content);
@@ -174,6 +181,7 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
       setDailyTasks(loadedDailyTasks);
       setDailyArchive(loadedDailyArchive);
       setDailyMemoryProject(loadedDailyMemory);
+      setTrackersContent(loadedTrackers);
       setError(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to read storage";
@@ -271,6 +279,12 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
   const saveDailyMemory = async (content: string) => {
     const root = await getOPFS();
     await writeFile(root, DAILY_MEMORY_FILE, content);
+    await loadFiles();
+  };
+
+  const saveTrackersContent = async (content: string) => {
+    const root = await getOPFS();
+    await writeFile(root, TRACKERS_FILE, content);
     await loadFiles();
   };
 
@@ -392,6 +406,8 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
         saveDailyMemory,
         dailyMemoryProject,
         createDailyMemory,
+        trackersContent,
+        saveTrackersContent,
         refresh,
         error,
       }}

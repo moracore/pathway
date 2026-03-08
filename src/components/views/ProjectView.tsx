@@ -98,7 +98,12 @@ export function ProjectView({ projectName, onBack }: { projectName: string; onBa
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiError, setAiError]     = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  
+
+  // AI generation modal state
+  const [aiGeneratedTasks, setAiGeneratedTasks] = useState<string[]>([]);
+  const [selectedAiTasks, setSelectedAiTasks]   = useState<Set<number>>(new Set());
+  const [showAiModal, setShowAiModal]           = useState(false);
+
   // AI Chat state
   const [showChat, setShowChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -207,7 +212,7 @@ export function ProjectView({ projectName, onBack }: { projectName: string; onBa
   const handleTaskKeyDown = (e: KeyboardEvent<HTMLInputElement>, block: TaskBlock) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      addTaskAfter(block.id, { complexity: block.complexity, importance: block.importance, timeScale: block.timeScale, level: block.level });
+      addTaskAfter(block.id, { level: block.level });
     } else if (e.key === "Backspace" && block.description === "") {
       e.preventDefault();
       deleteBlock(block.id);
@@ -249,22 +254,27 @@ export function ProjectView({ projectName, onBack }: { projectName: string; onBa
         setAiError("AI didn't return any tasks. Try adding some manual context first.");
         return;
       }
-      
-      // Append tasks to the markdown content
-      const newBody = content.trimEnd() + "\n\n" + tasks.join("\n") + "\n";
-      setContent(newBody);
-      scheduleSave(newBody);
-      
-      // Update blocks immediately if we're in list mode
-      if (mode === "list") {
-          const parsed = parseProjectFile(projectName, newBody);
-          setBlocks(projectToBlocks(parsed));
-      }
-
+      // Show modal — all tasks pre-selected
+      setAiGeneratedTasks(tasks);
+      setSelectedAiTasks(new Set(tasks.map((_, i) => i)));
+      setShowAiModal(true);
     } catch (e: any) {
       setAiError(e.message || "Failed to generate tasks.");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleConfirmAiTasks = () => {
+    const selected = aiGeneratedTasks.filter((_, i) => selectedAiTasks.has(i));
+    setShowAiModal(false);
+    if (selected.length === 0) return;
+    const newBody = content.trimEnd() + "\n\n" + selected.join("\n") + "\n";
+    setContent(newBody);
+    scheduleSave(newBody);
+    if (mode === "list") {
+      const parsed = parseProjectFile(projectName, newBody);
+      setBlocks(projectToBlocks(parsed));
     }
   };
 
@@ -491,6 +501,85 @@ ${content}
             }}
           />
         </div>
+      )}
+
+      {/* ── AI TASK SELECTION MODAL ── */}
+      {showAiModal && (
+        <Modal title="AI Generated Tasks" onClose={() => setShowAiModal(false)}>
+          <div className="flex flex-col gap-4">
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+              Select the tasks you want to add to your project.
+            </p>
+            <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+              {aiGeneratedTasks.map((line, i) => {
+                const selected = selectedAiTasks.has(i);
+                const desc = line.replace(/^- \[ \] `\[.*?\]`\s*/, "").trim();
+                const meta = line.match(/`\[\s*(\d+)\s*\|\s*(\d+)\s*\]`/);
+                return (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors"
+                    style={{ borderBottom: i < aiGeneratedTasks.length - 1 ? "1px solid var(--border-subtle)" : "none" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-tertiary)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                    onClick={() => {
+                      const n = new Set(selectedAiTasks);
+                      if (n.has(i)) n.delete(i); else n.add(i);
+                      setSelectedAiTasks(n);
+                    }}
+                  >
+                    <span className="shrink-0" style={{ color: selected ? "var(--accent)" : "var(--text-muted)" }}>
+                      {selected
+                        ? <CheckCircle2 size={18} />
+                        : <Circle size={18} />}
+                    </span>
+                    <span className="flex-1 text-sm" style={{ color: selected ? "var(--text-primary)" : "var(--text-muted)" }}>
+                      {desc}
+                    </span>
+                    {meta && (
+                      <span
+                        className="shrink-0 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                        style={{ background: "var(--bg-elevated)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
+                      >
+                        T{meta[1]}·C{meta[2]}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <button
+                onClick={() => setSelectedAiTasks(
+                  selectedAiTasks.size === aiGeneratedTasks.length
+                    ? new Set()
+                    : new Set(aiGeneratedTasks.map((_, i) => i))
+                )}
+                className="text-sm px-3 py-1.5 rounded-lg transition-colors"
+                style={{ color: "var(--text-secondary)", background: "var(--bg-tertiary)", border: "1px solid var(--border)" }}
+              >
+                {selectedAiTasks.size === aiGeneratedTasks.length ? "Deselect All" : "Select All"}
+              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowAiModal(false)}
+                  className="text-sm px-4 py-2 rounded-lg"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmAiTasks}
+                  disabled={selectedAiTasks.size === 0}
+                  className="text-sm px-4 py-2 rounded-lg font-medium text-white disabled:opacity-40"
+                  style={{ background: "var(--accent)" }}
+                >
+                  Add {selectedAiTasks.size} task{selectedAiTasks.size !== 1 ? "s" : ""}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {/* ── AI CHAT MODAL ── */}

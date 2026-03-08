@@ -139,4 +139,11 @@ input[type="range"].hsl-slider::-moz-range-track {
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: var(--accent);
   }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }
