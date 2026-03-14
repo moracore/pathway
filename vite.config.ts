@@ -2,11 +2,13 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const isCapacitor = !!process.env.CAPACITOR;
+
 export default defineConfig({
-  base: process.env.CAPACITOR ? '/' : '/pathway/',
+  base: isCapacitor ? '/' : '/pathway/',
   plugins: [
     react(),
-    VitePWA({
+    ...(!isCapacitor ? [VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
@@ -35,6 +37,6 @@ export default defineConfig({
           }
         ]
       }
-    })
+    })] : []),
   ],
 });
