@@ -66,7 +66,7 @@ function TaskItem({
           className="shrink-0 text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded"
           style={{ background: "var(--bg-elevated)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
         >
-          C{task.complexity}·T{task.timeScale}
+          T{task.timeScale}·I{task.importance}·C{task.complexity}
         </span>
       )}
     </div>
@@ -222,7 +222,7 @@ export function TodayView() {
                                         opacity: selected ? 1 : 0.4,
                                     }}
                                 >
-                                    C{t.complexity}·T{t.timeScale}
+                                    T{t.timeScale}·I{t.importance}·C{t.complexity}
                                 </span>
                             )}
                         </div>

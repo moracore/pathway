@@ -19,7 +19,7 @@ export interface Section {
 export interface ProjectData {
   projectName: string;
   sections: Section[];
-  hasProjectComplete: boolean;
+  dormantUntil?: string; // YYYY-MM-DD, or "9999-12-31" for permanent
   importance: number;
   content: string; // The full raw file content
   lastModified?: number;
@@ -102,7 +102,7 @@ export function parseProjectFile(projectName: string, content: string): ProjectD
   const lines = content.split("\n");
   const sections: Section[] = [];
   let current: Section = { name: "_root", tasks: [] };
-  let hasProjectComplete = false;
+  let dormantUntil: string | undefined = undefined;
   let importance = 0;
 
   for (const line of lines) {
@@ -112,8 +112,9 @@ export function parseProjectFile(projectName: string, content: string): ProjectD
       continue;
     }
 
-    if (/^PROJECT COMPLETE\s*$/.test(line.trim()) || /^#{2,3}\s+project\s+complete\.?\s*$/i.test(line.trim())) {
-      hasProjectComplete = true;
+    const dormantMatch = line.match(/^>\s*Dormant Until:\s*(\d{4}-\d{2}-\d{2})\s*$/);
+    if (dormantMatch) {
+      dormantUntil = dormantMatch[1];
       continue;
     }
 
@@ -136,10 +137,26 @@ export function parseProjectFile(projectName: string, content: string): ProjectD
   return {
     projectName,
     sections: sections.filter((s) => s.tasks.length > 0),
-    hasProjectComplete,
+    dormantUntil,
     importance,
     content,
   };
+}
+
+/** Adds or replaces the "Dormant Until" metadata line in a project file. */
+export function addDormantToContent(content: string, dateStr: string): string {
+  const lines = content.split("\n");
+  const filtered = lines.filter(l => !/^>\s*Dormant Until:\s*/.test(l));
+  const impIdx = filtered.findIndex(l => /^>\s*Importance:\s*/.test(l));
+  const h1Idx = filtered.findIndex(l => l.startsWith("# "));
+  const insertIdx = impIdx !== -1 ? impIdx + 1 : (h1Idx !== -1 ? h1Idx + 1 : 0);
+  filtered.splice(insertIdx, 0, `> Dormant Until: ${dateStr}`);
+  return filtered.join("\n");
+}
+
+/** Removes the "Dormant Until" metadata line from a project file. */
+export function removeDormantFromContent(content: string): string {
+  return content.split("\n").filter(l => !/^>\s*Dormant Until:\s*/.test(l)).join("\n");
 }
 
 export function calcProgress(tasks: Task[]) {

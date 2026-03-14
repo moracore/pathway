@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, ChevronUp, ChevronDown, Calendar, FolderKanban, Target, BarChart2, CheckCircle } from "lucide-react";
+import { Eye, EyeOff, ChevronUp, ChevronDown, Calendar, FolderKanban, Target, BarChart2, Moon } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -462,13 +462,13 @@ export function SettingsView() {
           );
         })}
 
-        {/* Done — always last, but removable */}
+        {/* Dormant — always last, but removable */}
         <div style={{ height: 1, background: "var(--border-subtle)" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 22 + 22 + 2, flexShrink: 0 }} />
           <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, color: "var(--text-primary)" }}>
-            <CheckCircle size={16} style={{ color: enableDone ? "var(--accent)" : "var(--text-muted)", flexShrink: 0 }} />
-            <span style={{ fontSize: 15, fontWeight: 500 }}>Done</span>
+            <Moon size={16} style={{ color: enableDone ? "var(--accent)" : "var(--text-muted)", flexShrink: 0 }} />
+            <span style={{ fontSize: 15, fontWeight: 500 }}>Dormant</span>
             <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Always last</span>
           </div>
           <Toggle value={enableDone} onChange={setEnableDone} />

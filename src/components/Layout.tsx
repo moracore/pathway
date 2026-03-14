@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Calendar, FolderKanban, Target, CheckCircle, Settings, BarChart2 } from "lucide-react";
+import { Calendar, FolderKanban, Target, Moon, Settings, BarChart2 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import type { Tab } from "../App";
 
@@ -16,7 +16,7 @@ const TAB_DEFS: Record<string, { id: Tab; label: string; icon: React.ElementType
   projects: { id: "projects", label: "Projects", icon: FolderKanban, enableKey: null             },
   goals:    { id: "goals",    label: "Goals",    icon: Target,       enableKey: "enableGoals"    },
   trackers: { id: "trackers", label: "Trackers", icon: BarChart2,    enableKey: "enableTrackers" },
-  done:     { id: "done",     label: "Done",     icon: CheckCircle,  enableKey: "enableDone"     },
+  done:     { id: "done",     label: "Dormant",  icon: Moon,         enableKey: "enableDone"     },
 };
 
 export function Layout({ children, activeTab, setActiveTab, showSettings, onOpenSettings }: LayoutProps) {

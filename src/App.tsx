@@ -5,7 +5,7 @@ import { TodayView } from "./components/views/TodayView";
 import { ProjectsView } from "./components/views/ProjectsView";
 import { GoalsView } from "./components/views/GoalsView";
 import { GoalView } from "./components/views/GoalView";
-import { DoneView } from "./components/views/DoneView";
+import { DormantView } from "./components/views/DoneView";
 import { ProjectView } from "./components/views/ProjectView";
 import { SettingsView } from "./components/views/SettingsView";
 import { TrackersView } from "./components/views/TrackersView";
@@ -129,7 +129,7 @@ function Dashboard() {
             {activeTab === "projects" && <ProjectsView onSelectProject={setActiveProject} />}
             {activeTab === "goals"    && <GoalsView onSelectGoal={setActiveGoal} />}
             {activeTab === "trackers" && <TrackersView />}
-            {activeTab === "done"     && <DoneView onSelectProject={setActiveProject} />}
+            {activeTab === "done"     && <DormantView onSelectProject={setActiveProject} />}
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { calcProgress, type ProjectData, type Task } from "../lib/parser";
 import { useFileSystem } from "../hooks";
-import { ChevronDown, ChevronRight, CheckCircle2, Circle, XCircle } from "lucide-react";
+import { ChevronDown, ChevronRight, CheckCircle2, Circle, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ProgressBarProps {
   percent: number;
   label?: string;
-  isComplete?: boolean;
 }
 
-export function ProgressBar({ percent, label, isComplete }: ProgressBarProps) {
+export function ProgressBar({ percent, label }: ProgressBarProps) {
   const displayPct = Math.round(Math.min(percent ?? 0, 100));
 
   return (
@@ -34,14 +33,8 @@ export function ProgressBar({ percent, label, isComplete }: ProgressBarProps) {
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="h-full rounded-full"
           style={{
-            background: displayPct === 0
-              ? "transparent"
-              : isComplete
-              ? "var(--success)"
-              : "var(--accent)",
-            boxShadow: displayPct > 0 && !isComplete
-              ? "0 0 8px rgba(var(--accent-rgb), 0.4)"
-              : "none",
+            background: displayPct === 0 ? "transparent" : "var(--accent)",
+            boxShadow: displayPct > 0 ? "0 0 8px rgba(var(--accent-rgb), 0.4)" : "none",
           }}
         />
       </div>
@@ -110,6 +103,24 @@ export function TaskItem({ task, projectName }: TaskItemProps) {
   );
 }
 
+const DORMANCY_PRESETS = [
+  { label: "Tomorrow",  days: 1   },
+  { label: "1 week",    days: 7   },
+  { label: "2 weeks",   days: 14  },
+  { label: "1 month",   days: 30  },
+  { label: "3 months",  days: 90  },
+  { label: "6 months",  days: 180 },
+];
+
+function addCalendarDays(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 interface ProjectCardProps {
   project: ProjectData;
   isDaily?: boolean;
@@ -117,24 +128,26 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, isDaily, onOpen }: ProjectCardProps) {
-  const { saveProjectContent } = useFileSystem();
+  const { saveProjectContent, setProjectDormant } = useFileSystem();
   const [expanded, setExpanded] = useState(false);
+  const [dormantPicking, setDormantPicking] = useState(false);
 
   const allTasks = project.sections.flatMap((s) => s.tasks);
   const overall = calcProgress(allTasks);
   const totalSections = project.sections.filter((s) => s.name !== "_root").length;
-  const allDone = allTasks.length > 0 && overall.percent === 100 && !project.hasProjectComplete;
+  const allDone = allTasks.length > 0 && overall.percent === 100;
 
-  const handleMarkComplete = async (e: React.MouseEvent) => {
+  const handleAddTask = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const newContent = project.content.trimEnd() + "\n\n## Project complete.\n";
+    // Add a blank task then open project for editing
+    const newContent = project.content.trimEnd() + "\n- [ ] `[ 1 | 1 | 1 ]` \n";
     await saveProjectContent(project.projectName, newContent);
+    onOpen?.();
   };
 
-  const handleAddNextSteps = async (e: React.MouseEvent) => {
+  const handleDormant = async (e: React.MouseEvent, dormantUntil: string) => {
     e.stopPropagation();
-    const newContent = project.content.trimEnd() + "\n- [ ] `[ 1 | 1 | 1 ]` Work out next steps\n";
-    await saveProjectContent(project.projectName, newContent);
+    await setProjectDormant(project.projectName, dormantUntil);
   };
 
   return (
@@ -178,72 +191,97 @@ export function ProjectCard({ project, isDaily, onOpen }: ProjectCardProps) {
                 Daily
               </span>
             )}
-            {project.hasProjectComplete && (
-              <span
-                className="px-2 py-0.5 rounded-full text-xs font-semibold"
-                style={{
-                  background: "rgba(68, 187, 102, 0.1)",
-                  color: "var(--success)",
-                  border: "1px solid rgba(68, 187, 102, 0.2)",
-                }}
-              >
-                Complete
-              </span>
-            )}
           </div>
 
-          {!project.hasProjectComplete && (
-            <button
-              onClick={e => { e.stopPropagation(); setExpanded(!expanded); }}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm transition-colors shrink-0"
-              style={{
-                background: "var(--bg-tertiary)",
-                color: "var(--text-secondary)",
-              }}
-              onMouseEnter={e => { e.stopPropagation(); e.currentTarget.style.background = "var(--bg-elevated)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-tertiary)"; }}
-            >
-              <span className="font-medium mr-1">
-                {totalSections > 0 ? `${totalSections} Sections` : "Tasks"}
-              </span>
-              {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            </button>
-          )}
+          <button
+            onClick={e => { e.stopPropagation(); setExpanded(!expanded); }}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm transition-colors shrink-0"
+            style={{
+              background: "var(--bg-tertiary)",
+              color: "var(--text-secondary)",
+            }}
+            onMouseEnter={e => { e.stopPropagation(); e.currentTarget.style.background = "var(--bg-elevated)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-tertiary)"; }}
+          >
+            <span className="font-medium mr-1">
+              {totalSections > 0 ? `${totalSections} Sections` : "Tasks"}
+            </span>
+            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
         </div>
 
         {allDone ? (
-          <div className="flex items-center gap-3 mt-3">
-            <span className="text-sm flex-1" style={{ color: "var(--text-muted)" }}>
-              All tasks done — project complete?
-            </span>
-            <button
-              onClick={handleMarkComplete}
-              title="Yes, mark complete"
-              className="transition-opacity hover:opacity-80"
-              style={{ color: "var(--success)" }}
-            >
-              <CheckCircle2 size={24} />
-            </button>
-            <button
-              onClick={handleAddNextSteps}
-              title="No, add next steps"
-              className="transition-opacity hover:opacity-80"
-              style={{ color: "var(--danger)" }}
-            >
-              <XCircle size={24} />
-            </button>
-          </div>
+          dormantPicking ? (
+            <div className="mt-3" onClick={e => e.stopPropagation()}>
+              <p className="text-xs font-semibold mb-2" style={{ color: "var(--text-muted)" }}>
+                Dormant for how long?
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {DORMANCY_PRESETS.map(p => (
+                  <button
+                    key={p.label}
+                    onClick={e => handleDormant(e, addCalendarDays(p.days))}
+                    className="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+                    style={{ background: "var(--bg-tertiary)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+                    onMouseEnter={e => { e.currentTarget.style.color = "var(--accent)"; e.currentTarget.style.borderColor = "var(--accent)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.borderColor = "var(--border)"; }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+                <button
+                  onClick={e => { e.stopPropagation(); setDormantPicking(false); }}
+                  className="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 mt-3 flex-wrap" onClick={e => e.stopPropagation()}>
+              <span className="text-sm flex-1 min-w-0" style={{ color: "var(--text-muted)" }}>
+                All tasks done!
+              </span>
+              <button
+                onClick={handleAddTask}
+                className="shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+                style={{ background: "var(--bg-tertiary)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+                onMouseEnter={e => { e.currentTarget.style.color = "var(--accent)"; e.currentTarget.style.borderColor = "var(--accent)"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.borderColor = "var(--border)"; }}
+              >
+                + Task
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); setDormantPicking(true); }}
+                className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+                style={{ background: "var(--bg-tertiary)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+                onMouseEnter={e => { e.currentTarget.style.color = "var(--accent)"; e.currentTarget.style.borderColor = "var(--accent)"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.borderColor = "var(--border)"; }}
+              >
+                <Moon size={11} /> Dormant
+              </button>
+              <button
+                onClick={e => handleDormant(e, "9999-12-31")}
+                className="shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+                style={{ background: "rgba(var(--accent-rgb), 0.1)", color: "var(--accent)", border: "1px solid rgba(var(--accent-rgb), 0.3)" }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(var(--accent-rgb), 0.2)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(var(--accent-rgb), 0.1)"; }}
+              >
+                Done ✓
+              </button>
+            </div>
+          )
         ) : (
           <ProgressBar
             label={!expanded ? "Overall Progress" : undefined}
             percent={overall.percent}
-            isComplete={project.hasProjectComplete}
           />
         )}
       </div>
 
       <AnimatePresence>
-        {expanded && !project.hasProjectComplete && (
+        {expanded && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}

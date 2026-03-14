@@ -16,6 +16,8 @@ import {
   archivePastDays,
   toggleTaskInContent,
   parseTaskLine,
+  addDormantToContent,
+  removeDormantFromContent,
   type ProjectData,
   type Goal,
   type Task,
@@ -33,7 +35,7 @@ function todayString(): string {
 interface FileSystemContextType {
   isReady: boolean;
   projects: ProjectData[];
-  completedProjects: ProjectData[];
+  dormantProjects: ProjectData[];
   goals: Goal[];
   dailyProject: ProjectData | null;
   dailyTasks: Task[];
@@ -47,6 +49,8 @@ interface FileSystemContextType {
   deleteDailyTask: (rawLine: string) => Promise<void>;
   saveProjectContent: (projectName: string, content: string) => Promise<void>;
   deleteProject: (projectName: string) => Promise<void>;
+  setProjectDormant: (projectName: string, dormantUntil: string) => Promise<void>;
+  reactivateProject: (projectName: string) => Promise<void>;
   dailyMemoryProject: ProjectData | null;
   saveDailyMemory: (content: string) => Promise<void>;
   createDailyMemory: (content: string, dateStr: string) => Promise<void>;
@@ -127,7 +131,7 @@ const legacyStore = localforage.createInstance({
 export function FileSystemProvider({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(false);
   const [projects, setProjects] = useState<ProjectData[]>([]);
-  const [completedProjects, setCompletedProjects] = useState<ProjectData[]>([]);
+  const [dormantProjects, setDormantProjects] = useState<ProjectData[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [dailyProject, setDailyProject] = useState<ProjectData | null>(null);
   const [dailyTasks, setDailyTasks] = useState<Task[]>([]);
@@ -148,7 +152,7 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
       let loadedDailyArchive: DailyArchiveEntry[] = [];
       let loadedDailyMemory: ProjectData | null = null;
       let loadedTrackers: string | null = null;
-      const completed: ProjectData[] = [];
+      const dormant: ProjectData[] = [];
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for await (const [name, handle] of (root as any).entries()) {
@@ -179,8 +183,17 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
           // Ignore all internal underscore-prefixed files (e.g. old _Goals.md)
           const project = parseProjectFile(name.replace(".md", ""), content);
           project.lastModified = Date.now();
-          if (project.hasProjectComplete) {
-            completed.push(project);
+          if (project.dormantUntil) {
+            if (project.dormantUntil <= today) {
+              // Auto-wake: dormancy period has passed — remove the marker
+              const wokeContent = removeDormantFromContent(content);
+              await writeFile(root, name, wokeContent);
+              const woken = parseProjectFile(name.replace(".md", ""), wokeContent);
+              woken.lastModified = Date.now();
+              loadedProjects.push(woken);
+            } else {
+              dormant.push(project);
+            }
           } else {
             loadedProjects.push(project);
           }
@@ -194,7 +207,7 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
       );
 
       setProjects(loadedProjects);
-      setCompletedProjects(completed);
+      setDormantProjects(dormant);
       setGoals(loadedGoals);
       setDailyProject(loadedDaily);
       setDailyTasks(loadedDailyTasks);
@@ -278,6 +291,24 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
       );
       await refresh();
     }
+  };
+
+  const setProjectDormant = async (projectName: string, dormantUntil: string) => {
+    const root = await getOPFS();
+    const content = await readFile(root, `${projectName}.md`);
+    if (!content) return;
+    const newContent = addDormantToContent(content, dormantUntil);
+    await writeFile(root, `${projectName}.md`, newContent);
+    await loadFiles();
+  };
+
+  const reactivateProject = async (projectName: string) => {
+    const root = await getOPFS();
+    const content = await readFile(root, `${projectName}.md`);
+    if (!content) return;
+    const newContent = removeDormantFromContent(content);
+    await writeFile(root, `${projectName}.md`, newContent);
+    await loadFiles();
   };
 
   const deleteProject = async (projectName: string) => {
@@ -409,7 +440,7 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
       value={{
         isReady,
         projects,
-        completedProjects,
+        dormantProjects,
         goals,
         dailyProject,
         dailyTasks,
@@ -423,6 +454,8 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
         deleteDailyTask,
         saveProjectContent,
         deleteProject,
+        setProjectDormant,
+        reactivateProject,
         saveDailyMemory,
         dailyMemoryProject,
         createDailyMemory,

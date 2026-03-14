@@ -5,13 +5,33 @@ import {
   useCallback,
   type KeyboardEvent,
 } from "react";
-import { ArrowLeft, List, FileText, Plus, Trash2, CheckCircle2, Circle, Sparkles, Loader2, MessageSquare, Send, AlertTriangle } from "lucide-react";
+import { ArrowLeft, List, FileText, Plus, Trash2, CheckCircle2, Circle, Sparkles, Loader2, Moon, Send, AlertTriangle } from "lucide-react";
 import { useFileSystem } from "../../hooks";
 import { useTheme } from "../../context/ThemeContext";
 import { parseProjectFile } from "../../lib/parser";
 import { generateTasksForProject, generateAIResponse, type ChatMessage } from "../../lib/ai";
 import { ProgressBar } from "../ProjectCard";
 import { Modal } from "../ui/Modal";
+
+// ── Dormancy ──────────────────────────────────────────────────────────────────
+
+const DORMANCY_PRESETS = [
+  { label: "Tomorrow",  days: 1   },
+  { label: "1 week",    days: 7   },
+  { label: "2 weeks",   days: 14  },
+  { label: "1 month",   days: 30  },
+  { label: "3 months",  days: 90  },
+  { label: "6 months",  days: 180 },
+];
+
+function addCalendarDays(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,8 +75,10 @@ function projectToBlocks(project: ReturnType<typeof parseProjectFile>): Block[] 
   return blocks;
 }
 
-function blocksToMarkdown(name: string, blocks: Block[], importance: number): string {
-  const lines = [`# ${name}`, `> Importance: ${importance}`, ""];
+function blocksToMarkdown(name: string, blocks: Block[], importance: number, dormantUntil?: string): string {
+  const lines = [`# ${name}`, `> Importance: ${importance}`];
+  if (dormantUntil) lines.push(`> Dormant Until: ${dormantUntil}`);
+  lines.push("");
   for (const b of blocks) {
     if (b.type === "section") {
       lines.push(`## ${b.name}`);
@@ -88,9 +110,9 @@ function tryAutofill(value: string, cursor: number) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function ProjectView({ projectName, onBack }: { projectName: string; onBack: () => void }) {
-  const { projects, completedProjects, saveProjectContent, deleteProject } = useFileSystem();
+  const { projects, dormantProjects, saveProjectContent, deleteProject, setProjectDormant } = useFileSystem();
   const { apiKey } = useTheme();
-  const project = [...projects, ...completedProjects].find((p) => p.projectName === projectName);
+  const project = [...projects, ...dormantProjects].find((p) => p.projectName === projectName);
 
   const [mode, setMode]           = useState<Mode>("list");
   const [blocks, setBlocks]       = useState<Block[]>([]);
@@ -98,6 +120,7 @@ export function ProjectView({ projectName, onBack }: { projectName: string; onBa
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiError, setAiError]     = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showDormantPicker, setShowDormantPicker] = useState(false);
 
   // AI generation modal state
   const [aiGeneratedTasks, setAiGeneratedTasks] = useState<string[]>([]);
@@ -165,10 +188,10 @@ export function ProjectView({ projectName, onBack }: { projectName: string; onBa
 
   const commitBlocks = useCallback((newBlocks: Block[]) => {
     setBlocks(newBlocks);
-    const md = blocksToMarkdown(projectName, newBlocks, project?.importance ?? 10);
+    const md = blocksToMarkdown(projectName, newBlocks, project?.importance ?? 10, project?.dormantUntil);
     setContent(md);
     scheduleSave(md);
-  }, [projectName, project?.importance, scheduleSave]);
+  }, [projectName, project?.importance, project?.dormantUntil, scheduleSave]);
 
   const updateTask = (id: string, patch: Partial<TaskBlock>) =>
     commitBlocks(blocks.map((b) => (b.id === id && b.type === "task" ? { ...b, ...patch } : b)));
@@ -372,6 +395,17 @@ ${content}
             <ModeBtn active={mode === "markdown"} onClick={() => switchMode("markdown")} icon={<FileText size={14} />} label="Markdown" />
           </div>
 
+          <button
+            onClick={() => setShowDormantPicker(true)}
+            title="Set project dormant"
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+            style={{ color: "var(--text-secondary)", background: "var(--bg-secondary)", border: "1px solid var(--border)" }}
+            onMouseEnter={e => { e.currentTarget.style.color = "var(--accent)"; e.currentTarget.style.borderColor = "var(--accent)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.borderColor = "var(--border)"; }}
+          >
+            <Moon size={14} /> Dormant
+          </button>
+
           {confirmDelete ? (
             <div className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm" style={{ background: "var(--bg-secondary)", border: "1px solid var(--danger)" }}>
               <AlertTriangle size={13} style={{ color: "var(--danger)" }} />
@@ -439,24 +473,12 @@ ${content}
             <div className="flex gap-2">
               <FooterBtn
                 onClick={() => addTaskAfter(blocks[blocks.length - 1]?.id ?? null)}
-                label="Add Task"
+                label="Task"
                 icon={<Plus size={14} />}
               />
-              <FooterBtn onClick={addSection} label="Add Section" icon={<Plus size={14} />} />
+              <FooterBtn onClick={addSection} label="Section" icon={<Plus size={14} />} />
 
               <div className="flex-1" />
-
-              <button
-                title={!apiKey ? "Set an API Key in Settings to use AI features" : "Discuss with AI"}
-                onClick={() => { setAiError(null); setShowChat(true); }}
-                disabled={!apiKey}
-                className="flex items-center justify-center rounded-lg w-9 h-9 transition-colors disabled:opacity-40"
-                style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}
-                onMouseEnter={e => { if (apiKey) { e.currentTarget.style.color = "var(--accent)"; e.currentTarget.style.borderColor = "var(--accent)"; } }}
-                onMouseLeave={e => { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.borderColor = "var(--border)"; }}
-              >
-                <MessageSquare size={14} />
-              </button>
 
               <button
                 onClick={handleGenerateAITasks}
@@ -466,7 +488,7 @@ ${content}
                 style={{ color: "#fff", background: "var(--accent)" }}
               >
                 {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                {isGenerating ? "Generating..." : "Generate Next Tasks"}
+                {isGenerating ? "Generating..." : "Generate"}
               </button>
             </div>
           </div>
@@ -577,6 +599,50 @@ ${content}
                   Add {selectedAiTasks.size} task{selectedAiTasks.size !== 1 ? "s" : ""}
                 </button>
               </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── DORMANCY PICKER MODAL ── */}
+      {showDormantPicker && (
+        <Modal title="Set Project Dormant" onClose={() => setShowDormantPicker(false)}>
+          <div className="flex flex-col gap-4">
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+              The project will be hidden until the selected date. It will automatically reappear in your projects list the next morning.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {DORMANCY_PRESETS.map(p => (
+                <button
+                  key={p.label}
+                  onClick={async () => {
+                    await setProjectDormant(projectName, addCalendarDays(p.days));
+                    setShowDormantPicker(false);
+                    onBack();
+                  }}
+                  className="px-4 py-3 rounded-xl text-sm font-medium transition-colors text-left"
+                  style={{ background: "var(--bg-tertiary)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-primary)"; }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            <div className="border-t pt-3" style={{ borderColor: "var(--border)" }}>
+              <button
+                onClick={async () => {
+                  await setProjectDormant(projectName, "9999-12-31");
+                  setShowDormantPicker(false);
+                  onBack();
+                }}
+                className="w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors text-left flex items-center gap-2"
+                style={{ background: "rgba(var(--accent-rgb), 0.08)", color: "var(--accent)", border: "1px solid rgba(var(--accent-rgb), 0.2)" }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(var(--accent-rgb), 0.15)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(var(--accent-rgb), 0.08)"; }}
+              >
+                Mark as Done (permanent)
+              </button>
             </div>
           </div>
         </Modal>
