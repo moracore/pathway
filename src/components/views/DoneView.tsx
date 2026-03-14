@@ -57,7 +57,7 @@ export function DormantView({ onSelectProject }: { onSelectProject: (name: strin
                 }}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <Moon size={16} style={{ color: "var(--text-muted)", shrink: 0 }} />
+                  <Moon size={16} className="shrink-0" style={{ color: "var(--text-muted)" }} />
                   <div className="min-w-0">
                     <p className="font-semibold truncate" style={{ color: "var(--text-primary)" }}>
                       {p.projectName}
