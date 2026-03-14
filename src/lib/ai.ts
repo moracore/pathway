@@ -89,24 +89,34 @@ Each milestone should be a short, clear achievement (3-8 words). Do not include 
   return result.split("\n").map((l: string) => l.replace(/^[-*•]\s*/, "").trim()).filter((l: string) => l.length > 0);
 }
 
-export async function generateTasksForProject(
+export async function brainstormTasksForProject(
    apiKey: string,
-   project: ProjectData
+   project: ProjectData,
+   braindump: string
 ): Promise<string[]> {
-    const memoryContext = project.content;
-    
-    const systemPrompt = `You are an AI assistant built right into the "Pathway" project tracker. 
-Your job is to look at the current markdown project state below, and generate 3 to 5 highly actionable, granular, next-step tasks.
-Return ONLY a markdown list of tasks using the exact format: \`- [ ] \`[ Complexity | Time ]\` Task Description\`.
-Complexity and Time should be numbers between 1 and 5. Time 1 = < 10 mins, Time 5 = > 2 hours.
-Make sure the tasks make logical sense based on what is already done and what the project is about.
-DO NOT return any other text or conversational filler, ONLY the bulleted markdown list.`;
+    const systemPrompt = `You are an AI assistant built into "Pathway", a project tracker.
+The user has written a free-form braindump of their thoughts. Your job is to turn that into a clear, ordered list of actionable tasks.
 
-    const userMessage = `Here is my project file context:\n\n` + memoryContext;
+Rules:
+- Read the project title, existing tasks, and braindump together to understand the full picture.
+- Generate tasks in a logical order (dependencies first, then follow-on work).
+- If a piece of work is large, break it into subtasks — but keep tasks meaningful (roughly 15 min to 2 hrs each). Don't go absurdly granular.
+- Assign realistic T / I / C values:
+    T (Time):       1 = <15 min,  2 = ~30 min,  3 = ~1 hr,  4 = ~2 hr,  5 = half day+
+    I (Importance): 1 = nice-to-have,  3 = should do,  5 = critical / blocking
+    C (Complexity): 1 = trivial,  3 = moderate effort,  5 = hard / uncertain
+- Return ONLY task lines in this exact format, nothing else:
+  - [ ] \`[ T | I | C ]\` Task description`;
+
+    const userMessage =
+`Project: "${project.projectName}"
+
+Existing tasks:
+${project.content}
+
+User braindump:
+${braindump.trim()}`;
 
     const result = await generateAIResponse(apiKey, [{ role: "user", content: userMessage }], systemPrompt);
-    
-    // Split the result by lines and keep only actual task lines
-    const lines = result.split("\n").filter((l: string) => l.trim().startsWith("- [ ]"));
-    return lines;
+    return result.split("\n").filter((l: string) => l.trim().startsWith("- [ ]"));
 }

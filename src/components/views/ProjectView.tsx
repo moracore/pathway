@@ -9,7 +9,7 @@ import { ArrowLeft, List, FileText, Plus, Trash2, CheckCircle2, Circle, Sparkles
 import { useFileSystem } from "../../hooks";
 import { useTheme } from "../../context/ThemeContext";
 import { parseProjectFile } from "../../lib/parser";
-import { generateTasksForProject, generateAIResponse, type ChatMessage } from "../../lib/ai";
+import { brainstormTasksForProject, generateAIResponse, type ChatMessage } from "../../lib/ai";
 import { ProgressBar } from "../ProjectCard";
 import { Modal } from "../ui/Modal";
 
@@ -122,12 +122,16 @@ export function ProjectView({ projectName, onBack }: { projectName: string; onBa
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showDormantPicker, setShowDormantPicker] = useState(false);
 
-  // AI generation modal state
+  // Brainstorm modal state
+  const [showBrainstorm, setShowBrainstorm] = useState(false);
+  const [braindump, setBraindump]           = useState("");
+
+  // AI task selection modal state
   const [aiGeneratedTasks, setAiGeneratedTasks] = useState<string[]>([]);
   const [selectedAiTasks, setSelectedAiTasks]   = useState<Set<number>>(new Set());
   const [showAiModal, setShowAiModal]           = useState(false);
 
-  // AI Chat state
+  // AI Chat state (kept for future use)
   const [showChat, setShowChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
@@ -267,17 +271,17 @@ export function ProjectView({ projectName, onBack }: { projectName: string; onBa
 
   // ── AI Handlers ─────────────────────────────────────────────────────────────
 
-  const handleGenerateAITasks = async () => {
-    if (!project || !apiKey) return;
+  const handleBrainstormSubmit = async () => {
+    if (!project || !apiKey || !braindump.trim()) return;
     setAiError(null);
     setIsGenerating(true);
+    setShowBrainstorm(false);
     try {
-      const tasks = await generateTasksForProject(apiKey, project);
+      const tasks = await brainstormTasksForProject(apiKey, project, braindump);
       if (tasks.length === 0) {
-        setAiError("AI didn't return any tasks. Try adding some manual context first.");
+        setAiError("AI didn't return any tasks. Try adding more detail to your braindump.");
         return;
       }
-      // Show modal — all tasks pre-selected
       setAiGeneratedTasks(tasks);
       setSelectedAiTasks(new Set(tasks.map((_, i) => i)));
       setShowAiModal(true);
@@ -285,6 +289,7 @@ export function ProjectView({ projectName, onBack }: { projectName: string; onBa
       setAiError(e.message || "Failed to generate tasks.");
     } finally {
       setIsGenerating(false);
+      setBraindump("");
     }
   };
 
@@ -481,9 +486,9 @@ ${content}
               <div className="flex-1" />
 
               <button
-                onClick={handleGenerateAITasks}
+                onClick={() => { setAiError(null); setShowBrainstorm(true); }}
                 disabled={isGenerating || !apiKey}
-                title={!apiKey ? "Set an API Key in Settings to use AI features" : "Generate next tasks"}
+                title={!apiKey ? "Set an API Key in Settings to use AI features" : "Brainstorm tasks with AI"}
                 className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-40"
                 style={{ color: "#fff", background: "var(--accent)" }}
               >
@@ -523,6 +528,56 @@ ${content}
             }}
           />
         </div>
+      )}
+
+      {/* ── BRAINSTORM MODAL ── */}
+      {showBrainstorm && (
+        <Modal title="Brainstorm" onClose={() => { setShowBrainstorm(false); setBraindump(""); }}>
+          <div className="flex flex-col gap-4">
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+              Write anything on your mind — messy, half-formed, stream of consciousness. The AI will read your notes alongside the existing project tasks and generate a clean, ordered task list.
+            </p>
+            <textarea
+              autoFocus
+              value={braindump}
+              onChange={e => setBraindump(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleBrainstormSubmit();
+              }}
+              placeholder="e.g. need to sort out the login flow, probably need to handle errors better, also the signup page is broken on mobile, and I want to add password reset at some point..."
+              className="w-full rounded-xl px-4 py-3 text-sm leading-relaxed outline-none resize-none custom-scrollbar"
+              style={{
+                background: "var(--bg-tertiary)",
+                border: "1px solid var(--border)",
+                color: "var(--text-primary)",
+                minHeight: "180px",
+                caretColor: "var(--accent)",
+              }}
+            />
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                ⌘↵ to generate
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setShowBrainstorm(false); setBraindump(""); }}
+                  className="text-sm px-4 py-2 rounded-lg"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBrainstormSubmit}
+                  disabled={!braindump.trim()}
+                  className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg font-medium text-white disabled:opacity-40 transition-opacity hover:opacity-90"
+                  style={{ background: "var(--accent)" }}
+                >
+                  <Sparkles size={14} /> Generate Tasks
+                </button>
+              </div>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {/* ── AI TASK SELECTION MODAL ── */}
