@@ -8,6 +8,14 @@ export default defineConfig({
   base: isCapacitor ? '/' : '/pathway/',
   plugins: [
     react(),
+    // Strip crossorigin attributes for Capacitor — older Android WebViews reject
+    // crossorigin on capacitor:// scheme resources, causing a blank white screen
+    ...(isCapacitor ? [{
+      name: 'strip-crossorigin',
+      transformIndexHtml(html: string) {
+        return html.replace(/ crossorigin/g, '');
+      },
+    }] : []),
     ...(!isCapacitor ? [VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],

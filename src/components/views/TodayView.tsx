@@ -122,6 +122,24 @@ export function TodayView() {
     }
   });
 
+  const handleMarkdownChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    const cursor = e.target.selectionStart;
+    // Mobile keyboards don't reliably fire keydown for space; detect via InputEvent.data
+    if ((e.nativeEvent as InputEvent).data === " " && cursor > 0) {
+      const valueWithoutSpace = value.slice(0, cursor - 1) + value.slice(cursor);
+      const result = tryAutofill(valueWithoutSpace, cursor - 1);
+      if (result) {
+        pendingCursor.current = result.newCursor;
+        setMdContent(result.newValue);
+        scheduleSave(result.newValue);
+        return;
+      }
+    }
+    setMdContent(value);
+    scheduleSave(value);
+  };
+
   const handleMarkdownKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key !== " ") return;
     const result = tryAutofill(e.currentTarget.value, e.currentTarget.selectionStart);
@@ -425,7 +443,7 @@ export function TodayView() {
           <textarea
             ref={textareaRef}
             value={mdContent}
-            onChange={e => { setMdContent(e.target.value); scheduleSave(e.target.value); }}
+            onChange={handleMarkdownChange}
             onKeyDown={handleMarkdownKeyDown}
             spellCheck={false}
             className="w-full rounded-xl px-5 py-4 text-sm font-mono leading-relaxed outline-none resize-none custom-scrollbar"

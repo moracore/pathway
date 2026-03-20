@@ -268,6 +268,7 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
       const msg = err instanceof Error ? err.message : "Failed to initialize storage";
       console.error("Failed to initialize OPFS:", err);
       setError(msg);
+      setIsReady(true);
     }
   }, [loadFiles]);
 

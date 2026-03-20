@@ -254,8 +254,21 @@ export function ProjectView({ projectName, onBack }: { projectName: string; onBa
   // ── Markdown editor handlers ──────────────────────────────────────────────
 
   const handleMarkdownChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setContent(e.target.value);
-    scheduleSave(e.target.value);
+    const value = e.target.value;
+    const cursor = e.target.selectionStart;
+    // Mobile keyboards don't reliably fire keydown for space; detect via InputEvent.data
+    if ((e.nativeEvent as InputEvent).data === " " && cursor > 0) {
+      const valueWithoutSpace = value.slice(0, cursor - 1) + value.slice(cursor);
+      const result = tryAutofill(valueWithoutSpace, cursor - 1);
+      if (result) {
+        pendingCursor.current = result.newCursor;
+        setContent(result.newValue);
+        scheduleSave(result.newValue);
+        return;
+      }
+    }
+    setContent(value);
+    scheduleSave(value);
   };
 
   const handleMarkdownKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
