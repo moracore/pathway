@@ -257,7 +257,7 @@ export function ProjectView({ projectName, onBack }: { projectName: string; onBa
     const value = e.target.value;
     const cursor = e.target.selectionStart;
     // Mobile keyboards don't reliably fire keydown for space; detect via InputEvent.data
-    if ((e.nativeEvent as InputEvent).data === " " && cursor > 0) {
+    if ((e.nativeEvent as InputEvent | null)?.data === " " && cursor !== null && cursor > 0) {
       const valueWithoutSpace = value.slice(0, cursor - 1) + value.slice(cursor);
       const result = tryAutofill(valueWithoutSpace, cursor - 1);
       if (result) {
