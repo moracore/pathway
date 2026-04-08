@@ -1,0 +1,857 @@
+/* ── App Header ── */
+.app-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--clr-surface);
+  border-bottom: 1px solid var(--clr-border);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.app-header-title {
+  flex: 1;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--clr-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.app-header-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--clr-text-secondary);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.app-header-btn:hover {
+  color: var(--clr-text-primary);
+  background: var(--clr-surface-overlay);
+}
+
+/* ── App Layout ── */
+.app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── LIST ZONE ── */
+.list-zone {
+  flex: 2;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 2;
+}
+
+/* ── Task Input ── */
+.task-input-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--clr-surface-raised);
+  border-bottom: 1px solid var(--clr-border);
+}
+
+.task-input-bar input {
+  flex: 1;
+  background: var(--clr-surface);
+  color: var(--clr-text-primary);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-family);
+  font-size: var(--fs-md);
+  transition: border-color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.task-input-bar input:focus {
+  border-color: var(--clr-base);
+  box-shadow: 0 0 0 3px rgba(0, 144, 112, 0.15);
+  outline: none;
+}
+
+.task-input-bar input::placeholder {
+  color: var(--clr-text-muted);
+}
+
+.btn-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--clr-base);
+  color: #fff;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--ease-spring);
+  flex-shrink: 0;
+}
+
+.btn-add:hover {
+  background: var(--clr-base-light);
+  transform: scale(1.05);
+}
+
+.btn-add:active {
+  transform: scale(0.95);
+}
+
+/* ── Task List ── */
+.task-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-sm) var(--space-lg);
+}
+
+.task-list-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: var(--space-md);
+  color: var(--clr-text-muted);
+  font-size: var(--fs-sm);
+  padding: var(--space-xl);
+  text-align: center;
+}
+
+.task-list-empty svg {
+  opacity: 0.3;
+}
+
+/* ── Task Item ── */
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-sm);
+  border-radius: 0;
+  transition: background var(--dur-fast) var(--ease-out);
+  animation: slideInLeft var(--dur-mid) var(--ease-out) both;
+  cursor: default;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.4);
+}
+
+.task-item.exiting {
+  animation: slideOutRight 0.3s var(--ease-out) both !important;
+}
+
+.task-item:last-of-type {
+  border-bottom: none;
+}
+
+.task-item:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.task-item.dragging {
+  opacity: 0.5;
+  background: var(--clr-surface-raised);
+}
+
+.task-item.drag-over {
+  border-top: 2px solid var(--clr-base);
+}
+
+/* Checkbox */
+.task-checkbox {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--clr-border-light);
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--ease-spring);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-checkbox:hover {
+  border-color: var(--clr-base);
+  background: rgba(0, 144, 112, 0.1);
+  transform: scale(1.1);
+}
+
+.task-checkbox:active {
+  animation: checkPop var(--dur-mid) var(--ease-spring);
+}
+
+.task-checkbox svg {
+  opacity: 0;
+  color: var(--clr-base);
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.task-checkbox:hover svg {
+  opacity: 0.6;
+}
+
+/* Task text */
+.task-text {
+  flex: 1;
+  font-size: var(--fs-md);
+  color: var(--clr-text-primary);
+  min-width: 0;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+/* ── Size Dots ── */
+.size-dots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.size-dot {
+  border: none;
+  border-radius: 50%;
+  background: var(--clr-border);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--ease-spring),
+              box-shadow var(--dur-fast) var(--ease-out);
+  padding: 0;
+}
+
+.size-dot:hover {
+  background: var(--clr-base-dim);
+  transform: scale(1.2);
+}
+
+.size-dot.active {
+  background: var(--clr-base);
+  box-shadow: 0 0 6px rgba(0, 144, 112, 0.3);
+}
+
+.size-dot.active:hover {
+  background: var(--clr-base-light);
+}
+
+/* ── Delete button ── */
+.btn-delete-task {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--clr-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--dur-fast) var(--ease-out);
+}
+
+.btn-delete-task:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--clr-base);
+}
+
+/* ── Divider between zones ── */
+.zone-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--clr-base-dim), transparent);
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
+/* ── REWARD ZONE CONTAINER ── */
+.reward-zone-container {
+  flex: none;
+  position: relative;
+  background: #080c14;
+  overflow: hidden;
+  transition: all var(--dur-mid) var(--ease-spring);
+  width: 100%;
+}
+
+.reward-zone-container:not(.minimized) {
+  aspect-ratio: 1 / 1;
+}
+
+.reward-zone-container.minimized {
+  aspect-ratio: 2 / 1;
+}
+
+/* ── INNER REWARD SQUARE ── */
+.reward-zone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+.reward-zone-container.minimized .reward-zone {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Minimize button */
+.btn-minimize-reward {
+  position: absolute;
+  top: var(--space-md);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.4);
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-out);
+  z-index: 4;
+}
+
+.btn-minimize-reward:hover {
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  transform: translateX(-50%) scale(1.1);
+}
+
+.reward-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Undo button */
+.btn-undo {
+  position: absolute;
+  bottom: var(--space-md);
+  right: var(--space-md);
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-full);
+  background: var(--clr-surface-raised);
+  color: var(--clr-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-out);
+  z-index: 3;
+}
+
+.btn-undo:hover {
+  border-color: var(--clr-base);
+  color: var(--clr-base);
+  box-shadow: var(--shadow-glow);
+  transform: scale(1.08);
+}
+
+.btn-undo:active {
+  transform: scale(0.92);
+}
+
+.btn-undo.disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav {
+  display: flex;
+  align-items: stretch;
+  background: var(--clr-surface-raised);
+  border-top: 1px solid var(--clr-border);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.nav-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--space-sm) 0;
+  border: none;
+  background: none;
+  color: var(--clr-text-muted);
+  font-family: var(--font-family);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out);
+  position: relative;
+}
+
+.nav-tab::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) scaleX(0);
+  width: 24px;
+  height: 2px;
+  border-radius: var(--radius-full);
+  background: var(--clr-base);
+  transition: transform var(--dur-mid) var(--ease-spring);
+}
+
+.nav-tab.active {
+  color: var(--clr-base);
+}
+
+.nav-tab.active::before {
+  transform: translateX(-50%) scaleX(1);
+}
+
+.nav-tab:not(.active):hover {
+  color: var(--clr-text-secondary);
+}
+
+.nav-tab svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ── Calendar grid ── */
+.full-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+/* ── Calendar tab panel ── */
+.calendar-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Calendar Grid Styles ── */
+.cal-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.cal-week-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 3px;
+}
+
+.cal-day-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+}
+
+.cal-day-sq {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--clr-text-muted);
+  font-weight: 400;
+  gap: 0;
+}
+
+.cal-day-sq.cd-logged {
+  background: var(--clr-base);
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* Year digits: first 4 days of January */
+.cal-day-sq.cd-year {
+  color: var(--clr-base-light);
+  font-weight: 800;
+}
+
+.cal-day-sq.cd-year.cd-logged {
+  color: #fff;
+}
+
+/* First of month (unlogged): accent letter marker */
+.cal-day-sq.cd-month-start {
+  color: var(--clr-base-light);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+/* Today: circle ring, accent text, no fill */
+.cal-day-sq.cd-today:not(.cd-logged) {
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--clr-base);
+  color: var(--clr-base);
+  font-weight: 700;
+}
+
+/* Today + logged: colored fill + subtle white inner ring */
+.cal-day-sq.cd-today.cd-logged {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+
+/* Quick exercise dots under date number */
+.cal-day-dots {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  height: 4px;
+  line-height: 0;
+}
+
+.cal-day-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--clr-text-muted);
+}
+
+.cd-logged .cal-day-dot {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+
+/* ── Projects View Redesign ── */
+.projects-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.projects-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.projects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px var(--space-lg) 80px;
+}
+
+.project-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.project-header {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 2px;
+  position: relative;
+}
+
+.project-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+
+.project-name-display {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--clr-text-primary);
+  letter-spacing: -0.01em;
+  text-transform: capitalize;
+}
+
+.project-underline {
+  height: 2px;
+  width: 100%;
+  border-radius: 1px;
+}
+
+.project-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0.6;
+  transition: opacity var(--dur-fast);
+}
+
+.project-group:hover .project-header-actions {
+  opacity: 1;
+}
+
+.btn-project-action {
+  background: transparent;
+  border: none;
+  color: var(--clr-text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  transition: all var(--dur-fast);
+}
+
+.btn-project-action:hover:not(:disabled) {
+  background: rgba(255,255,255,0.05);
+  color: var(--clr-text-primary);
+}
+
+.btn-project-action:disabled {
+  opacity: 0.2;
+  cursor: default;
+}
+
+
+
+.btn-danger-link {
+  background: none;
+  border: none;
+  color: #ff4444;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
+.btn-danger-link:hover {
+  opacity: 1;
+}
+
+.settings-section label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--clr-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.settings-input {
+  width: 100%;
+  background: var(--clr-surface-raised);
+  border: 1px solid var(--clr-border);
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: var(--clr-text-primary);
+  font-family: inherit;
+  font-weight: 600;
+  outline: none;
+}
+
+.project-tasks {
+  padding-left: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.project-task-item {
+  border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+  animation: none !important; /* No slide-in for projects as they are static */
+  padding: 12px 0;
+}
+
+.project-task-item:last-of-type {
+  border-bottom: none !important;
+}
+
+.project-task-item:hover {
+  background: none !important; /* No background on hover in project view for cleaner look */
+  transform: none !important;
+}
+
+.project-task-actions.always-visible {
+  opacity: 1;
+  display: flex !important;
+}
+
+.btn-task-action {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  transition: all var(--dur-fast);
+  opacity: 0.6;
+}
+
+.btn-task-action:hover {
+  background: rgba(255,255,255,0.06);
+  opacity: 1;
+}
+
+.btn-task-action.action-delete:hover {
+  color: #ff4444 !important;
+}
+
+.project-add-task-container {
+  padding: 8px 0;
+}
+
+.project-inline-input {
+  background: transparent;
+  border: none;
+  width: 100%;
+  padding: 6px 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--clr-text-muted);
+  outline: none;
+}
+
+.project-inline-input:focus {
+  color: var(--clr-text-primary);
+}
+
+
+
+/* ── Deployment Glow ── */
+@keyframes deploy-pulse {
+  0% { opacity: 0.15; }
+  50% { opacity: 0.45; }
+  100% { opacity: 0.15; }
+}
+
+.pending-deployment-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  box-shadow: inset 0 0 80px var(--clr-base);
+  animation: deploy-pulse 2s infinite ease-in-out;
+}
+
+/* ── Modals ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-lg);
+}
+
+.modal-content {
+  background: var(--clr-surface);
+  width: 100%;
+  max-width: 400px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--clr-border);
+  animation: modalPop 0.3s var(--ease-spring);
+}
+
+@keyframes modalPop {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--clr-border);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--clr-text-primary);
+}
+
+.modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.btn-close {
+  background: var(--clr-surface-raised);
+  border: none;
+  color: var(--clr-text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--dur-fast);
+}
+
+.btn-close:hover {
+  background: var(--clr-surface-overlay);
+  color: var(--clr-text-primary);
+}
+
+/* ── Drop Zones ── */
+.task-drop-zone-end {
+  height: 0;
+  width: 100%;
+  position: relative;
+  border-top: 2px solid transparent;
+  z-index: 100;
+}
+
+.task-drop-zone-end::after {
+  content: '';
+  position: absolute;
+  top: -20px;
+  bottom: -20px;
+  left: 0;
+  right: 0;
+  pointer-events: auto;
+}
+
+.task-drop-zone-end.active {
+  border-top-color: var(--clr-base);
+}
