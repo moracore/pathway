@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Palette, Plus, X, ChevronRight } from 'lucide-react';
+import { Plus, X, ChevronRight } from 'lucide-react';
 import type { Group } from '../types';
 
 function ConfirmDelete({ label, onConfirm, onCancel }: { label: string; onConfirm: () => void; onCancel: () => void }) {
