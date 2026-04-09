@@ -34,7 +34,7 @@ interface Props {
   onClose: () => void;
 }
 
-export default function PhysicsModal({ config, onUpdate, onReset, onClose }: Props) {
+export default function PhysicsModal({ config, onUpdate, onReset: _onReset, onClose }: Props) {
   const [savedSnapshot, setSavedSnapshot] = useState<PhysicsConfig>(() => {
     try {
       const raw = localStorage.getItem(SAVED_KEY);
