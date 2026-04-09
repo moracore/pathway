@@ -21,6 +21,7 @@ const PARAMS: Param[] = [
   { key: 'FRICTION',        label: 'Surface Friction',     min: 0,    max: 30,    step: 1,     description: 'Friction between colliding planet surfaces' },
   { key: 'RADIUS_BASE',     label: 'Planet Radius Base',   min: 2,    max: 10,    step: 1,     description: 'Minimum planet radius' },
   { key: 'RADIUS_SCALE',    label: 'Planet Radius Scale',  min: 2,    max: 10,    step: 1,     description: 'Radius increase per size level' },
+  { key: 'GLOW_MULT',       label: 'Planet Glow',          min: 0,    max: 8,     step: 0.5,   description: 'Glow radius multiplier around planets' },
 ];
 
 interface Props {

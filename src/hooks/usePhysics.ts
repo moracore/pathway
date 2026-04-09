@@ -13,12 +13,13 @@ export interface PhysicsConfig {
   OVERLAP_PASSES: number;
   RADIUS_BASE: number;
   RADIUS_SCALE: number;
+  GLOW_MULT: number;
 }
 
 export const PHYSICS_DEFAULTS: PhysicsConfig = {
   G: 16200,
   MIN_SEPARATION: 2,
-  MAX_SPEED: 300,
+  MAX_SPEED: 2000,
   SPIN_DELAY_SEC: 0.5,
   SPIN_RADIUS_MULT: 1.8,
   SPIN_MAGNITUDE: 250,
@@ -28,6 +29,7 @@ export const PHYSICS_DEFAULTS: PhysicsConfig = {
   OVERLAP_PASSES: 3,
   RADIUS_BASE: 4,
   RADIUS_SCALE: 4,
+  GLOW_MULT: 3,
 };
 
 const STORAGE_KEY = 'pathway-physics';

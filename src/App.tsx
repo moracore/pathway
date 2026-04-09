@@ -19,6 +19,7 @@ import { useTrackers } from './hooks/useTrackers';
 import ProjectsView from './components/ProjectsView';
 import { useProjects } from './hooks/useProjects';
 import { usePhysics } from './hooks/usePhysics';
+import { useFutureTasks } from './hooks/useFutureTasks';
 import PhysicsModal from './components/PhysicsModal';
 
 export default function App() {
@@ -54,6 +55,7 @@ export default function App() {
   const { groups, addGroup, updateGroup, deleteGroup } = useGroups();
   const { trackers, addTracker, updateTracker, deleteTracker, toggleDate } = useTrackers();
   const { config: physicsConfig, updateParam: updatePhysicsParam, resetDefaults: resetPhysics } = usePhysics();
+  const { futureTasks, addFutureTask, deleteFutureTask, getTasksForDate } = useFutureTasks();
 
   useEffect(() => {
     setPlanets(prev => {
@@ -192,7 +194,7 @@ export default function App() {
 
           <div className="zone-divider" />
 
-          <div className={`reward-zone-container ${isRewardMinimized || taskInputFocused ? 'hidden' : ''}`}>
+          <div className={`reward-zone-container ${taskInputFocused ? 'hidden' : ''} ${isRewardMinimized ? 'minimized' : ''}`}>
             <div className="reward-zone">
               <RewardCanvas
                 planets={planets}
@@ -223,7 +225,14 @@ export default function App() {
 
       {activeTab === 'calendar' && !viewingDate && (
         <div className="calendar-panel">
-          <Calendar planets={planets} onSelectDate={setViewingDate} />
+          <Calendar
+            planets={planets}
+            onSelectDate={setViewingDate}
+            futureTasks={futureTasks}
+            onAddFutureTask={addFutureTask}
+            onDeleteFutureTask={deleteFutureTask}
+            getTasksForDate={getTasksForDate}
+          />
         </div>
       )}
 

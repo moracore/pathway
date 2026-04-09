@@ -116,7 +116,8 @@ export function useTasks(onWipe?: (tasks: Task[]) => void, resetHour: number = 3
     if (!task) return;
 
     const mass = Math.pow(2, task.size || 1); // 2^size
-    const passColor = planetColor || pickColor(task.size);
+    const raw = planetColor || pickColor(task.size);
+    const passColor = raw.length === 9 ? raw.slice(0, 7) : raw;
     const planet: Planet = {
       id: generateId(),
       taskId: task.id,

@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "assets:generate": "npx @capacitor/assets generate --android --iconBackgroundColor '#0d1117' --splashBackgroundColor '#0d1117'"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.0",

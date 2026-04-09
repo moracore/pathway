@@ -28,6 +28,7 @@ export function useGroups() {
   };
 
   const updateGroup = (id: string, updates: Partial<Omit<Group, 'id'>>) => {
+    if (updates.color && updates.color.length === 9) updates = { ...updates, color: updates.color.slice(0, 7) };
     setGroups(prev => prev.map(g => g.id === id ? { ...g, ...updates } : g));
   };
 

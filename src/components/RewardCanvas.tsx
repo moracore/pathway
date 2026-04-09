@@ -62,6 +62,29 @@ function wrap(val: number, period: number): number {
   return ((val % period) + period) % period;
 }
 
+function getTheme(): 'dark' | 'light' {
+  return (document.documentElement.getAttribute('data-theme') as 'dark' | 'light') || 'dark';
+}
+
+const THEME_PALETTE = {
+  dark: {
+    bg: '#080c14',
+    starColor: (alpha: number) => `rgba(180, 200, 255, ${alpha})`,
+    trailColor: (alpha: number) => `rgba(0, 150, 200, ${alpha})`,
+    glowAlpha: '33',
+    slingshotLine: 'rgba(255, 255, 255, 0.4)',
+    planetStroke: '#fff',
+  },
+  light: {
+    bg: '#e8ecf2',
+    starColor: (alpha: number) => `rgba(100, 120, 160, ${alpha * 0.5})`,
+    trailColor: (alpha: number) => `rgba(80, 120, 180, ${alpha * 0.6})`,
+    glowAlpha: '22',
+    slingshotLine: 'rgba(0, 0, 0, 0.3)',
+    planetStroke: '#444',
+  },
+};
+
 interface RewardCanvasProps {
   planets: Planet[];
   onDeploy?: (id: string, x: number, y: number, vx: number, vy: number) => void;
@@ -150,7 +173,9 @@ export default function RewardCanvas({ planets, onDeploy, physicsConfig }: Rewar
     const h = rect.height;
     const dt = isPausedRef.current ? 0 : 0.004;
 
-    ctx.fillStyle = '#080c14';
+    const palette = THEME_PALETTE[getTheme()];
+
+    ctx.fillStyle = palette.bg;
     ctx.fillRect(0, 0, w, h);
 
     timeRef.current += dt;
@@ -203,7 +228,7 @@ export default function RewardCanvas({ planets, onDeploy, physicsConfig }: Rewar
       const [sx, sy] = toScreen(star.x * w, star.y * h);
       const twinkle = Math.sin(t * star.twinkleSpeed + star.twinkleOffset) * 0.5 + 0.5;
       const alpha = star.brightness * (0.5 + twinkle * 0.5);
-      ctx.fillStyle = `rgba(180, 200, 255, ${alpha})`;
+      ctx.fillStyle = palette.starColor(alpha);
       ctx.beginPath();
       ctx.arc(sx, sy, star.size, 0, Math.PI * 2);
       ctx.fill();
@@ -228,7 +253,7 @@ export default function RewardCanvas({ planets, onDeploy, physicsConfig }: Rewar
         const [sx1, sy1] = toScreen(trail[i].x, trail[i].y);
         if (Math.abs(sx1 - sx0) > w / 2 || Math.abs(sy1 - sy0) > h / 2) continue;
         const alpha = (i / trail.length) * 0.15;
-        ctx.strokeStyle = `rgba(0, 150, 200, ${alpha})`;
+        ctx.strokeStyle = palette.trailColor(alpha);
         ctx.lineWidth = (i / trail.length) * 1.5;
         ctx.beginPath(); ctx.moveTo(sx0, sy0); ctx.lineTo(sx1, sy1); ctx.stroke();
       }
@@ -244,11 +269,14 @@ export default function RewardCanvas({ planets, onDeploy, physicsConfig }: Rewar
         if (gx+r+20 < 0 || gx-r-20 > w || gy+r+20 < 0 || gy-r-20 > h) continue;
 
         // Glow
-        const glow = ctx.createRadialGradient(gx, gy, r, gx, gy, r * 3);
-        glow.addColorStop(0, planet.color + '33');
-        glow.addColorStop(1, 'transparent');
-        ctx.fillStyle = glow;
-        ctx.beginPath(); ctx.arc(gx, gy, r * 3, 0, Math.PI * 2); ctx.fill();
+        const glowMult = physicsConfigRef.current?.GLOW_MULT ?? 3;
+        if (glowMult > 0) {
+          const glow = ctx.createRadialGradient(gx, gy, r, gx, gy, r * glowMult);
+          glow.addColorStop(0, planet.color + palette.glowAlpha);
+          glow.addColorStop(1, 'transparent');
+          ctx.fillStyle = glow;
+          ctx.beginPath(); ctx.arc(gx, gy, r * glowMult, 0, Math.PI * 2); ctx.fill();
+        }
 
         // Core
         ctx.fillStyle = planet.color;
@@ -276,7 +304,7 @@ export default function RewardCanvas({ planets, onDeploy, physicsConfig }: Rewar
     // ── Deployment Slingshot
     const drag = dragStateRef.current;
     if (drag) {
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.strokeStyle = palette.slingshotLine;
       ctx.setLineDash([5, 5]);
       ctx.beginPath(); ctx.moveTo(drag.x, drag.y); ctx.lineTo(drag.currX, drag.currY); ctx.stroke();
       ctx.setLineDash([]);
@@ -287,7 +315,7 @@ export default function RewardCanvas({ planets, onDeploy, physicsConfig }: Rewar
         const r = planetRadius(p.mass, physicsConfigRef.current);
         ctx.fillStyle = p.color;
         ctx.beginPath(); ctx.arc(drag.x, drag.y, r, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.strokeStyle = palette.planetStroke; ctx.lineWidth = 1; ctx.stroke();
       }
     }
 
@@ -332,8 +360,8 @@ export default function RewardCanvas({ planets, onDeploy, physicsConfig }: Rewar
       const p = pendingPlanets[0];
       const dx = drag.x - drag.currX;
       const dy = drag.y - drag.currY;
-      const vx = dx * 3;
-      const vy = dy * 3;
+      const vx = dx * 12;
+      const vy = dy * 12;
       const canvas = canvasRef.current;
       const w = canvas.width / (window.devicePixelRatio || 1);
       const h = canvas.height / (window.devicePixelRatio || 1);
@@ -350,10 +378,11 @@ export default function RewardCanvas({ planets, onDeploy, physicsConfig }: Rewar
       {pendingPlanets.length > 0 && <div className="pending-deployment-overlay" />}
       <canvas
         ref={canvasRef}
+        className="reward-canvas"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        style={{ width: '100%', height: '100%', cursor: pendingPlanets.length > 0 ? 'crosshair' : 'pointer', touchAction: 'none' }}
+        style={{ width: '100%', height: '100%', cursor: pendingPlanets.length > 0 ? 'crosshair' : 'pointer', touchAction: 'none', outline: 'none' }}
       />
     </div>
   );

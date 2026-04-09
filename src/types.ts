@@ -62,4 +62,10 @@ export interface Project {
   createdAt: number;
 }
 
+export interface FutureTask {
+  id: string;
+  date: string; // YYYY-MM-DD
+  text: string;
+}
+
 export type TabId = 'tasks' | 'projects' | 'calendar' | 'groups' | 'trackers';
