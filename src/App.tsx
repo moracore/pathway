@@ -156,6 +156,7 @@ export default function App() {
         onSettingsOpen={() => setSettingsPanelOpen(true)}
         onPhysicsOpen={() => setPhysicsModalOpen(true)}
         showPhysics={activeTab === 'tasks'}
+        tabLabel={{ tasks: 'Tasks', projects: 'Projects', calendar: 'Calendar', groups: 'Groups', trackers: 'Trackers' }[activeTab]}
       />
 
       {settingsPanelOpen && (

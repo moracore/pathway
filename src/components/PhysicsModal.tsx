@@ -1,6 +1,9 @@
-import { X, RotateCcw } from 'lucide-react';
+import { useState } from 'react';
+import { X, Save, Undo2 } from 'lucide-react';
 import type { PhysicsConfig } from '../hooks/usePhysics';
 import { PHYSICS_DEFAULTS } from '../hooks/usePhysics';
+
+const SAVED_KEY = 'pathway-physics-saved';
 
 interface Param {
   key: keyof PhysicsConfig;
@@ -32,6 +35,29 @@ interface Props {
 }
 
 export default function PhysicsModal({ config, onUpdate, onReset, onClose }: Props) {
+  const [savedSnapshot, setSavedSnapshot] = useState<PhysicsConfig>(() => {
+    try {
+      const raw = localStorage.getItem(SAVED_KEY);
+      return raw ? { ...PHYSICS_DEFAULTS, ...JSON.parse(raw) } : { ...config };
+    } catch { return { ...config }; }
+  });
+
+  const saveConfig = () => {
+    localStorage.setItem(SAVED_KEY, JSON.stringify(config));
+    setSavedSnapshot({ ...config });
+  };
+
+  const revertToSaved = () => {
+    const raw = localStorage.getItem(SAVED_KEY);
+    if (!raw) return;
+    const saved: PhysicsConfig = { ...PHYSICS_DEFAULTS, ...JSON.parse(raw) };
+    for (const key of Object.keys(saved) as (keyof PhysicsConfig)[]) {
+      onUpdate(key, saved[key]);
+    }
+  };
+
+  const btnStyle = { background: 'var(--clr-surface-raised)', border: 'none', padding: 8, borderRadius: 8, cursor: 'pointer', color: 'var(--clr-text-secondary)', display: 'flex' as const };
+
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'var(--clr-surface)', display: 'flex', flexDirection: 'column' }}>
       <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -39,22 +65,16 @@ export default function PhysicsModal({ config, onUpdate, onReset, onClose }: Pro
         <div style={{ display: 'flex', alignItems: 'center', padding: '20px 20px 16px', borderBottom: '1px solid var(--clr-border)', flexShrink: 0 }}>
           <span style={{ flex: 1, fontSize: 18, fontWeight: 700, color: 'var(--clr-text-primary)' }}>Physics Engine</span>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={onReset}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--clr-surface-raised)', border: '1px solid var(--clr-border)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', color: 'var(--clr-text-secondary)', fontSize: 13, fontWeight: 600 }}
-            >
-              <RotateCcw size={14} /> Reset to Defaults
-            </button>
-            <button onClick={onClose} style={{ background: 'var(--clr-surface-raised)', border: 'none', padding: 8, borderRadius: 8, cursor: 'pointer', color: 'var(--clr-text-secondary)', display: 'flex' }}>
-              <X size={18} />
-            </button>
+            <button onClick={saveConfig} style={btnStyle} title="Save current settings"><Save size={18} /></button>
+            <button onClick={revertToSaved} style={btnStyle} title="Revert to last save"><Undo2 size={18} /></button>
+            <button onClick={onClose} style={btnStyle} title="Close"><X size={18} /></button>
           </div>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
           {PARAMS.map(({ key, label, min, max, step, description }) => {
             const value = config[key] as number;
-            const isDefault = value === PHYSICS_DEFAULTS[key];
+            const isDefault = value === savedSnapshot[key];
             return (
               <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

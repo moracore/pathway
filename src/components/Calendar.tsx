@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import type { Planet, FutureTask } from '../types';
 import { stepSimulation } from '../engine/physics';
-import { Lock, Delete, Check, X, Plus } from 'lucide-react';
+import { Lock, Delete, X, Plus } from 'lucide-react';
 
 const WEEKDAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
@@ -450,7 +450,7 @@ export default function Calendar({ planets, onSelectDate, futureTasks = [], onAd
                         <div
                           key={cell.date}
                           className="cal-day-cell"
-                          onClick={(e) => { if (!longPressFiredRef.current) handleDateClick(cell.date); }}
+                          onClick={() => { if (!longPressFiredRef.current) handleDateClick(cell.date); }}
                           style={{ cursor: 'pointer' }}
                           {...longPressProps}
                         >

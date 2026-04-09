@@ -14,16 +14,17 @@ interface AppHeaderProps {
   onSettingsOpen: () => void;
   onPhysicsOpen?: () => void;
   showPhysics?: boolean;
+  tabLabel?: string;
 }
 
-export default function AppHeader({ onSettingsOpen, onPhysicsOpen, showPhysics }: AppHeaderProps) {
+export default function AppHeader({ onSettingsOpen, onPhysicsOpen, showPhysics, tabLabel }: AppHeaderProps) {
   const dayIndex = (new Date().getDay() + 6) % 7;
   const [quote, author] = DAILY_QUOTES[dayIndex];
 
   return (
     <header className="app-header">
       <div style={{ flex: 1, minWidth: 0 }}>
-        <span className="app-header-title" style={{ lineHeight: 1 }}>Pathway</span>
+        <span className="app-header-title" style={{ lineHeight: 1 }}>Pathway <span style={{ color: 'var(--clr-text-muted)', fontWeight: 400 }}>&middot; {tabLabel}</span></span>
         <div style={{ fontSize: 10, color: 'var(--clr-text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontStyle: 'italic' }}>
           {quote} <span style={{ opacity: 0.6 }}>— {author}</span>
         </div>
