@@ -3,9 +3,10 @@ import { Plus } from 'lucide-react';
 
 interface TaskInputProps {
   onAdd: (text: string) => void;
+  onFocusChange?: (focused: boolean) => void;
 }
 
-export default function TaskInput({ onAdd }: TaskInputProps) {
+export default function TaskInput({ onAdd, onFocusChange }: TaskInputProps) {
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -25,6 +26,8 @@ export default function TaskInput({ onAdd }: TaskInputProps) {
         value={value}
         onChange={e => setValue(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit(); } }}
+        onFocus={() => onFocusChange?.(true)}
+        onBlur={() => onFocusChange?.(false)}
         placeholder="Add a task..."
         id="task-input"
       />

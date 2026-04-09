@@ -17,7 +17,7 @@ interface ProjectsViewProps {
 }
 
 const COLOR_PRESETS = [
-  '#009070', '#0ea5e9', '#5f26c2ff', '#cc133bff', '#f87204f1'
+  '#009070', '#0ea5e9', '#5f26c2', '#cc133b', '#f87204'
 ];
 
 export default function ProjectsView({

@@ -273,7 +273,7 @@ export default function TrackersView({ trackers, onAddTracker, onUpdateTracker, 
             <ShieldEllipsis size={22} /> Tracker
           </button>
           <button
-            onClick={() => onAddTracker('New Anti-Tracker', '#cc133bff', [], 7, true)}
+            onClick={() => onAddTracker('New Anti-Tracker', '#cc133b', [], 7, true)}
             style={{ background: 'transparent', border: '2px dashed var(--clr-border)', borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer', minHeight: 69, color: 'var(--clr-text-muted)', transition: 'background 0.2s', fontSize: 12 }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--clr-surface-raised)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}

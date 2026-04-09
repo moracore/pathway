@@ -18,6 +18,8 @@ import TrackersView from './components/TrackersView';
 import { useTrackers } from './hooks/useTrackers';
 import ProjectsView from './components/ProjectsView';
 import { useProjects } from './hooks/useProjects';
+import { usePhysics } from './hooks/usePhysics';
+import PhysicsModal from './components/PhysicsModal';
 
 export default function App() {
   const { settings, visibleTabs, updateAccent, updateTheme, setNavEnabled, moveTab, updateResetHour } = useSettings();
@@ -51,6 +53,7 @@ export default function App() {
 
   const { groups, addGroup, updateGroup, deleteGroup } = useGroups();
   const { trackers, addTracker, updateTracker, deleteTracker, toggleDate } = useTrackers();
+  const { config: physicsConfig, updateParam: updatePhysicsParam, resetDefaults: resetPhysics } = usePhysics();
 
   useEffect(() => {
     setPlanets(prev => {
@@ -75,11 +78,13 @@ export default function App() {
   }, [groups, setPlanets]);
 
   const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
+  const [physicsModalOpen, setPhysicsModalOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState<TabId>('tasks');
   const [viewingDate, setViewingDate] = useState<string | null>(null);
   const [settingsTaskId, setSettingsTaskId] = useState<string | null>(null);
   const [isRewardMinimized, setIsRewardMinimized] = useState(false);
+  const [taskInputFocused, setTaskInputFocused] = useState(false);
 
   // Match the app's logical day based on configured reset hour.
   const logicalDay = (ts: number) => {
@@ -127,6 +132,8 @@ export default function App() {
       if (match) computedColor = match.color;
     }
 
+    if (!computedColor) computedColor = settings.accentColor;
+
     // Auto-mark trackers based on keywords
     const todayISO = logicalDay(Date.now());
     trackers.forEach(tracker => {
@@ -143,7 +150,11 @@ export default function App() {
 
   return (
     <div className="app">
-      <AppHeader onSettingsOpen={() => setSettingsPanelOpen(true)} />
+      <AppHeader
+        onSettingsOpen={() => setSettingsPanelOpen(true)}
+        onPhysicsOpen={() => setPhysicsModalOpen(true)}
+        showPhysics={activeTab === 'tasks'}
+      />
 
       {settingsPanelOpen && (
         <SettingsPanel
@@ -157,10 +168,19 @@ export default function App() {
         />
       )}
 
+      {physicsModalOpen && (
+        <PhysicsModal
+          config={physicsConfig}
+          onUpdate={updatePhysicsParam}
+          onReset={resetPhysics}
+          onClose={() => setPhysicsModalOpen(false)}
+        />
+      )}
+
       {activeTab === 'tasks' && (
         <>
           <div className="list-zone">
-            <TaskInput onAdd={addTask} />
+            <TaskInput onAdd={addTask} onFocusChange={setTaskInputFocused} />
             <TaskList
               tasks={tasks}
               onComplete={handleCompleteTask}
@@ -172,11 +192,12 @@ export default function App() {
 
           <div className="zone-divider" />
 
-          <div className={`reward-zone-container ${isRewardMinimized ? 'minimized' : ''}`}>
+          <div className={`reward-zone-container ${isRewardMinimized || taskInputFocused ? 'hidden' : ''}`}>
             <div className="reward-zone">
               <RewardCanvas
                 planets={planets}
                 onDeploy={deployPlanet}
+                physicsConfig={physicsConfig}
               />
             </div>
 

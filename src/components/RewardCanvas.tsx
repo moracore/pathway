@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import type { Planet } from '../types';
 import { stepSimulation, planetRadius, getGhostPositions } from '../engine/physics';
+import type { PhysicsConfig } from '../hooks/usePhysics';
 
 // ── Particle system for spawn bursts ──
 interface Particle {
@@ -64,9 +65,10 @@ function wrap(val: number, period: number): number {
 interface RewardCanvasProps {
   planets: Planet[];
   onDeploy?: (id: string, x: number, y: number, vx: number, vy: number) => void;
+  physicsConfig?: PhysicsConfig;
 }
 
-export default function RewardCanvas({ planets, onDeploy }: RewardCanvasProps) {
+export default function RewardCanvas({ planets, onDeploy, physicsConfig }: RewardCanvasProps) {
   const [isPaused, setIsPaused] = useState(false);
   const isPausedRef = useRef(isPaused);
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
@@ -82,6 +84,8 @@ export default function RewardCanvas({ planets, onDeploy }: RewardCanvasProps) {
   const cameraOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const dragStateRef = useRef<{ x: number, y: number, currX: number, currY: number } | null>(null);
   const contactTimersRef = useRef<Map<string, number>>(new Map());
+  const physicsConfigRef = useRef(physicsConfig);
+  useEffect(() => { physicsConfigRef.current = physicsConfig; }, [physicsConfig]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -154,7 +158,7 @@ export default function RewardCanvas({ planets, onDeploy }: RewardCanvasProps) {
 
     // Step physics with verified "Sticky" engine
     planetsRef.current = stepSimulation(
-      planetsRef.current, w, h, dt, undefined, undefined, contactTimersRef.current
+      planetsRef.current, w, h, dt, undefined, undefined, contactTimersRef.current, physicsConfigRef.current
     );
 
     const simPlanets = planetsRef.current;
@@ -232,7 +236,7 @@ export default function RewardCanvas({ planets, onDeploy }: RewardCanvasProps) {
 
     // ── Draw Planets
     for (const planet of simPlanets) {
-      const r = planetRadius(planet.mass);
+      const r = planetRadius(planet.mass, physicsConfigRef.current);
       const [sx, sy] = toScreen(planet.x, planet.y);
       const ghosts = getGhostPositions(sx, sy, r, w, h);
 
@@ -280,7 +284,7 @@ export default function RewardCanvas({ planets, onDeploy }: RewardCanvasProps) {
       const pending = planets.filter(p => !p.isDeployed);
       if (pending.length > 0) {
         const p = pending[0];
-        const r = planetRadius(p.mass);
+        const r = planetRadius(p.mass, physicsConfigRef.current);
         ctx.fillStyle = p.color;
         ctx.beginPath(); ctx.arc(drag.x, drag.y, r, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();

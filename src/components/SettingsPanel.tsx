@@ -6,9 +6,9 @@ import { Rotate3D, Album, CalendarDays, Palette, ShieldEllipsis } from 'lucide-r
 const ACCENT_PRESETS = [
   { label: 'Green',  color: '#009070' },
   { label: 'Blue',   color: '#0ea5e9' },
-  { label: 'Purple', color: '#5f26c2ff' },
-  { label: 'Red',    color: '#cc133bff' },
-  { label: 'Orange', color: '#f87204f1' },
+  { label: 'Purple', color: '#5f26c2' },
+  { label: 'Red',    color: '#cc133b' },
+  { label: 'Orange', color: '#f87204' },
 ];
 
 const TAB_META: Record<TabId, { label: string; Icon: React.ComponentType<{ size?: number }> }> = {

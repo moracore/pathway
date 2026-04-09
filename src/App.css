@@ -286,6 +286,12 @@
 }
 
 /* ── REWARD ZONE CONTAINER ── */
+.reward-zone-container.hidden {
+  visibility: hidden;
+  height: 0;
+  overflow: hidden;
+}
+
 .reward-zone-container {
   flex: none;
   position: relative;
@@ -688,8 +694,18 @@
 
 .project-task-item {
   border-bottom: 1px solid rgba(255,255,255,0.03) !important;
-  animation: none !important; /* No slide-in for projects as they are static */
-  padding: 12px 0;
+  animation: none !important;
+  padding: 0 0;
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
+  overflow: hidden;
+}
+
+.project-task-item .task-text {
+  font-size: var(--fs-sm);
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
 }
 
 .project-task-item:last-of-type {

@@ -173,7 +173,7 @@ export default function TrackerCalendar({ color, completedDates, onToggleDate, i
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--clr-text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', flex: 1 }}>Tracker Color</span>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              {['#009070', '#0ea5e9', '#5f26c2ff', '#cc133bff', '#f87204f1'].map(c => (
+              {['#009070', '#0ea5e9', '#5f26c2', '#cc133b', '#f87204'].map(c => (
                 <button
                   key={c}
                   onClick={() => onUpdateColor(c)}

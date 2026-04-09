@@ -1,19 +1,19 @@
 import type { Planet } from '../types';
+import type { PhysicsConfig } from '../hooks/usePhysics';
+import { PHYSICS_DEFAULTS } from '../hooks/usePhysics';
 
-// ── Simulation constants ──
-const G = 16200;                // Balanced gravity
-const DT = 0.016;               // Fixed timestep
-const MIN_SEPARATION = 2;       // Buffer between surfaces
-const MAX_SPEED = 300;          // Absolute speed cap
-const SPIN_DELAY_SEC = 0.5;     // Quicker feedback for spin
+// ── Simulation constants (fallback defaults) ──
+const DT = 0.016; // Fixed timestep fallback
 
 /**
  * Returns the visual radius for a planet based on its mass.
  * Mass is 2^size, so size 1-5 maps to Mass 2-32.
  */
-export function planetRadius(mass: number): number {
+export function planetRadius(mass: number, cfg?: PhysicsConfig): number {
+  const base = cfg?.RADIUS_BASE ?? PHYSICS_DEFAULTS.RADIUS_BASE;
+  const scale = cfg?.RADIUS_SCALE ?? PHYSICS_DEFAULTS.RADIUS_SCALE;
   const sizeLevel = Math.log2(mass);
-  return 4 + sizeLevel * 4; // 8, 12, 16, 20, 24
+  return base + sizeLevel * scale;
 }
 
 /**
@@ -53,12 +53,24 @@ export function stepSimulation(
   customDt?: number,
   radiusFn?: (mass: number) => number,
   options: PhysicsOptions = { gravity: true, spinning: true, friction: true },
-  contactTimers: Map<string, number> = new Map()
+  contactTimers: Map<string, number> = new Map(),
+  cfg?: PhysicsConfig
 ): Planet[] {
   const canvasW = w || 400;
   const canvasH = h || 300;
-  const getRadius = radiusFn || planetRadius;
+  const getRadius = radiusFn || ((mass: number) => planetRadius(mass, cfg));
   const activeDt = customDt !== undefined ? customDt : DT;
+
+  const G = cfg?.G ?? PHYSICS_DEFAULTS.G;
+  const MIN_SEPARATION = cfg?.MIN_SEPARATION ?? PHYSICS_DEFAULTS.MIN_SEPARATION;
+  const MAX_SPEED = cfg?.MAX_SPEED ?? PHYSICS_DEFAULTS.MAX_SPEED;
+  const SPIN_DELAY_SEC = cfg?.SPIN_DELAY_SEC ?? PHYSICS_DEFAULTS.SPIN_DELAY_SEC;
+  const SPIN_RADIUS_MULT = cfg?.SPIN_RADIUS_MULT ?? PHYSICS_DEFAULTS.SPIN_RADIUS_MULT;
+  const SPIN_MAGNITUDE = cfg?.SPIN_MAGNITUDE ?? PHYSICS_DEFAULTS.SPIN_MAGNITUDE;
+  const REPEL_FORCE = cfg?.REPEL_FORCE ?? PHYSICS_DEFAULTS.REPEL_FORCE;
+  const FRICTION = cfg?.FRICTION ?? PHYSICS_DEFAULTS.FRICTION;
+  const DAMPING = cfg?.DAMPING ?? PHYSICS_DEFAULTS.DAMPING;
+  const OVERLAP_PASSES = cfg?.OVERLAP_PASSES ?? PHYSICS_DEFAULTS.OVERLAP_PASSES;
 
   // 1. Pre-calculate neighbor counts for multi-body logic
   const neighborCounts = planets.map((pi, i) => {
@@ -69,7 +81,7 @@ export function stepSimulation(
       const [dx, dy] = toroidalDelta(pi.x, pi.y, pj.x, pj.y, canvasW, canvasH);
       const distSq = dx * dx + dy * dy;
       const touchDist = getRadius(pi.mass) + getRadius(pj.mass) + MIN_SEPARATION;
-      const spinRadius = touchDist * 1.8;
+      const spinRadius = touchDist * SPIN_RADIUS_MULT;
       if (distSq < spinRadius * spinRadius) count++;
     }
     return count;
@@ -105,7 +117,7 @@ export function stepSimulation(
 
       // 2. Spinning Repulsion (Tangent Forces with Delay - Only for 3+ body clusters)
       if (options.spinning !== false && neighborCounts[i] >= 2 && neighborCounts[j] >= 2) {
-        const spinRadius = touchDist * 1.8;
+        const spinRadius = touchDist * SPIN_RADIUS_MULT;
         const pairKey = pi.id < pj.id ? `${pi.id}:${pj.id}` : `${pj.id}:${pi.id}`;
 
         if (dist < spinRadius) {
@@ -117,7 +129,7 @@ export function stepSimulation(
             // Force perpendicular to normal creates orbital "spin"
             const tangentX = -ny;
             const tangentY = nx;
-            const spinMagnitude = 250 * (1 - dist / spinRadius);
+            const spinMagnitude = SPIN_MAGNITUDE * (1 - dist / spinRadius);
             fx += tangentX * spinMagnitude;
             fy += tangentY * spinMagnitude;
           }
@@ -129,12 +141,12 @@ export function stepSimulation(
       // 3. Soft Contact Repulsion
       if (dist < touchDist) {
         const overlap = touchDist - dist;
-        const repelForce = 300 * overlap / touchDist;
+        const repelForce = REPEL_FORCE * overlap / touchDist;
         fx -= nx * repelForce;
         fy -= ny * repelForce;
 
         // 4. Inter-planet Surface Friction
-        const friction = 2.5;
+        const friction = FRICTION;
         fx -= (pi.vx - pj.vx) * friction;
         fy -= (pi.vy - pj.vy) * friction;
       }
@@ -142,8 +154,8 @@ export function stepSimulation(
 
     const ax = fx / pi.mass;
     const ay = fy / pi.mass;
-    // Timestep-normalized damping (0.9925 baseline @ 0.016s)
-    const damping = Math.pow(0.9925, activeDt / 0.016);
+    // Timestep-normalized damping
+    const damping = Math.pow(DAMPING, activeDt / 0.016);
 
     let nvx = (pi.vx + ax * activeDt) * damping;
     let nvy = (pi.vy + ay * activeDt) * damping;
@@ -160,7 +172,7 @@ export function stepSimulation(
 
   // Hard Overlap Correction (only when unpaused)
   if (activeDt > 0) {
-    for (let pass = 0; pass < 3; pass++) {
+    for (let pass = 0; pass < OVERLAP_PASSES; pass++) {
       for (let i = 0; i < newPlanets.length; i++) {
         for (let j = i + 1; j < newPlanets.length; j++) {
           const pi = newPlanets[i];

@@ -95,7 +95,7 @@ function GroupModal({ group, onUpdateGroup, onDeleteGroup, onClose }: ModalProps
           <div>
             <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--clr-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Color Palette</label>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-              {['#009070', '#0ea5e9', '#5f26c2ff', '#cc133bff', '#f87204f1'].map(c => (
+              {['#009070', '#0ea5e9', '#5f26c2', '#cc133b', '#f87204'].map(c => (
                 <button
                   key={c}
                   onClick={() => onUpdateGroup(group.id, { color: c })}
