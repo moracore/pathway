@@ -41,6 +41,7 @@ export default function App() {
   const {
     tasks,
     planets,
+    historicalPlanets,
     setPlanets,
     completedStack,
     addTask,
@@ -97,7 +98,9 @@ export default function App() {
     return `${y}-${m}-${dNum}`;
   };
 
-  const dayPlanets = planets.filter(p => logicalDay(p.spawnTime) === viewingDate);
+  // Calendar shows live + archived planets so previous days remain visible.
+  const allPlanets = [...planets, ...historicalPlanets];
+  const dayPlanets = allPlanets.filter(p => logicalDay(p.spawnTime) === viewingDate);
   const readonlyTasks = dayPlanets.map((p, i) => ({
     id: p.taskId,
     text: p.taskText || `Completed task`,
@@ -200,6 +203,16 @@ export default function App() {
               <RewardCanvas
                 planets={planets}
                 onDeploy={deployPlanet}
+                onSyncState={(simPlanets) => {
+                  // Merge live x/y/vx/vy from the simulation back into persisted state
+                  // so the canvas resumes where it left off after switching tabs.
+                  const byId = new Map(simPlanets.map(p => [p.id, p]));
+                  setPlanets(prev => prev.map(p => {
+                    const sim = byId.get(p.id);
+                    if (!sim) return p;
+                    return { ...p, x: sim.x, y: sim.y, vx: sim.vx, vy: sim.vy };
+                  }));
+                }}
                 physicsConfig={physicsConfig}
               />
             </div>
@@ -227,7 +240,8 @@ export default function App() {
       {activeTab === 'calendar' && !viewingDate && (
         <div className="calendar-panel">
           <Calendar
-            planets={planets}
+            planets={allPlanets}
+            resetHour={settings.resetHour}
             onSelectDate={setViewingDate}
             futureTasks={futureTasks}
             onAddFutureTask={addFutureTask}

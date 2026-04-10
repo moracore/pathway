@@ -40,8 +40,11 @@ interface WeekRow {
   monthLabel: string | null;
 }
 
-function buildWeekRows(weeksBack: number, weeksForward: number): WeekRow[] {
-  const today = new Date();
+function buildWeekRows(weeksBack: number, weeksForward: number, resetHour: number): WeekRow[] {
+  // "Today" should follow the configured reset hour, not real midnight.
+  // Before the reset hour, we're still on the previous logical day.
+  const now = new Date();
+  const today = new Date(now.getTime() - resetHour * 3600 * 1000);
   today.setHours(0, 0, 0, 0);
   const todayISO = toISO(today);
   const monday = getMondayOf(today);
@@ -245,6 +248,7 @@ let calendarSessionUnlocked = false;
 
 interface CalendarProps {
   planets: Planet[];
+  resetHour?: number;
   onSelectDate?: (dateISO: string) => void;
   futureTasks?: FutureTask[];
   onAddFutureTask?: (date: string, text: string) => void;
@@ -252,7 +256,7 @@ interface CalendarProps {
   getTasksForDate?: (date: string) => FutureTask[];
 }
 
-export default function Calendar({ planets, onSelectDate, futureTasks = [], onAddFutureTask, onDeleteFutureTask, getTasksForDate }: CalendarProps) {
+export default function Calendar({ planets, resetHour = 3, onSelectDate, futureTasks = [], onAddFutureTask, onDeleteFutureTask, getTasksForDate }: CalendarProps) {
   const currentWeekRef = useRef<HTMLDivElement>(null);
   const configuredPassword = localStorage.getItem('pathway-calendar-password');
   const [isUnlocked, setIsUnlocked] = useState(calendarSessionUnlocked);
@@ -328,8 +332,8 @@ export default function Calendar({ planets, onSelectDate, futureTasks = [], onAd
 
   const dayPlanets: Record<string, Planet[]> = {};
   planets.forEach(p => {
-    // 3 AM logical midnight
-    const logicalTime = p.spawnTime - 3 * 3600 * 1000;
+    // Logical midnight follows the configured reset hour.
+    const logicalTime = p.spawnTime - resetHour * 3600 * 1000;
     const dStr = toISO(new Date(logicalTime));
     if (!dayPlanets[dStr]) dayPlanets[dStr] = [];
     dayPlanets[dStr].push(p);
@@ -337,7 +341,7 @@ export default function Calendar({ planets, onSelectDate, futureTasks = [], onAd
 
   const weeksBack = 26;
   const weeksForward = 12;
-  const weeks = buildWeekRows(weeksBack, weeksForward);
+  const weeks = buildWeekRows(weeksBack, weeksForward, resetHour);
   const currentWeekIdx = weeksBack;
 
   // Step 1: Find the max count for each month to assign dynamic anchors

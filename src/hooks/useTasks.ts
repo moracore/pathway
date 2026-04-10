@@ -6,6 +6,7 @@ const STORAGE_KEYS = {
   planets: 'orbital-planets',
   completedStack: 'orbital-completed-stack',
   lastWipe: 'orbital-last-wipe',
+  planetsHistory: 'orbital-planets-history',
 };
 
 function generateId(): string {
@@ -53,6 +54,9 @@ function markWiped() {
 export function useTasks(onWipe?: (tasks: Task[]) => void, resetHour: number = 3) {
   const [tasks, setTasks] = useState<Task[]>(() => load(STORAGE_KEYS.tasks, []));
   const [planets, setPlanets] = useState<Planet[]>(() => load(STORAGE_KEYS.planets, []));
+  const [historicalPlanets, setHistoricalPlanets] = useState<Planet[]>(
+    () => load(STORAGE_KEYS.planetsHistory, [])
+  );
   const [completedStack, setCompletedStack] = useState<{ task: Task; planet: Planet }[]>(
     () => load(STORAGE_KEYS.completedStack, [])
   );
@@ -71,6 +75,14 @@ export function useTasks(onWipe?: (tasks: Task[]) => void, resetHour: number = 3
         const tasksToClear = load<Task[]>(STORAGE_KEYS.tasks, []);
         onWipe(tasksToClear);
       }
+      // Archive today's planets into history before clearing,
+      // so the calendar can still show previous days' completions.
+      const planetsToArchive = load<Planet[]>(STORAGE_KEYS.planets, []);
+      const existingHistory = load<Planet[]>(STORAGE_KEYS.planetsHistory, []);
+      const mergedHistory = [...existingHistory, ...planetsToArchive];
+      setHistoricalPlanets(mergedHistory);
+      save(STORAGE_KEYS.planetsHistory, mergedHistory);
+
       setTasks([]);
       setPlanets([]);
       setCompletedStack([]);
@@ -158,6 +170,7 @@ export function useTasks(onWipe?: (tasks: Task[]) => void, resetHour: number = 3
   return {
     tasks,
     planets,
+    historicalPlanets,
     setPlanets,
     completedStack,
     addTask,

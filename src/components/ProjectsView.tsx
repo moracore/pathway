@@ -168,7 +168,7 @@ export default function ProjectsView({
                     <div className="project-task-actions always-visible">
                       <button
                         onClick={() => {
-                          onSendToMain(task.text, project.color, project.id);
+                          onSendToMain(`${project.name} - ${task.text}`, project.color, project.id);
                           onDeleteTask(project.id, task.id);
                         }}
                         className="btn-task-action"
@@ -245,12 +245,12 @@ export default function ProjectsView({
                     setEditingProject(next);
                     onUpdateProject(editingProject.id, { name: e.target.value });
                   }}
-                  style={{ 
-                    width: '100%', 
-                    padding: '12px', 
-                    borderRadius: 10, 
-                    background: 'var(--clr-surface-raised)', 
-                    border: '1px solid var(--clr-border)', 
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: 10,
+                    background: 'var(--clr-surface-raised)',
+                    border: '1px solid var(--clr-border)',
                     color: 'var(--clr-text-primary)',
                     fontSize: 15,
                     fontWeight: 600,

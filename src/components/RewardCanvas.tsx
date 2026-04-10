@@ -88,10 +88,11 @@ const THEME_PALETTE = {
 interface RewardCanvasProps {
   planets: Planet[];
   onDeploy?: (id: string, x: number, y: number, vx: number, vy: number) => void;
+  onSyncState?: (planets: Planet[]) => void;
   physicsConfig?: PhysicsConfig;
 }
 
-export default function RewardCanvas({ planets, onDeploy, physicsConfig }: RewardCanvasProps) {
+export default function RewardCanvas({ planets, onDeploy, onSyncState, physicsConfig }: RewardCanvasProps) {
   const [isPaused, setIsPaused] = useState(false);
   const isPausedRef = useRef(isPaused);
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
@@ -109,6 +110,18 @@ export default function RewardCanvas({ planets, onDeploy, physicsConfig }: Rewar
   const contactTimersRef = useRef<Map<string, number>>(new Map());
   const physicsConfigRef = useRef(physicsConfig);
   useEffect(() => { physicsConfigRef.current = physicsConfig; }, [physicsConfig]);
+
+  // Keep onSyncState fresh without re-running the unmount effect.
+  const onSyncStateRef = useRef(onSyncState);
+  useEffect(() => { onSyncStateRef.current = onSyncState; }, [onSyncState]);
+
+  // Flush current simulation positions/velocities back to the parent on unmount,
+  // so when the user navigates away and returns, the planets resume where they were.
+  useEffect(() => {
+    return () => {
+      onSyncStateRef.current?.(planetsRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;

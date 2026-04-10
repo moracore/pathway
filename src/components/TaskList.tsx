@@ -138,7 +138,7 @@ export default function TaskList({ tasks, onComplete, onUpdate, onSettingsClick,
         </div>
       ))}
       {!readOnly && (
-        <div 
+        <div
           className={`task-drop-zone-end ${dragOverIdx === tasks.length ? 'active' : ''}`}
           onDragOver={(e) => { e.preventDefault(); setDragOverIdx(tasks.length); }}
           onDragLeave={() => setDragOverIdx(null)}
