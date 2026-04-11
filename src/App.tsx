@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Undo2, ChevronDown, ChevronUp } from 'lucide-react';
 import './App.css';
 import type { TabId } from './types';
@@ -97,6 +97,22 @@ export default function App() {
     const dNum = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${dNum}`;
   };
+
+  // Import any future tasks whose date has arrived into the main task list.
+  // Runs once on mount (after the daily wipe effect has had a chance to clear tasks).
+  const hasImportedFutureTasks = useRef(false);
+  useEffect(() => {
+    if (hasImportedFutureTasks.current) return;
+    hasImportedFutureTasks.current = true;
+    const today = logicalDay(Date.now());
+    const due = futureTasks.filter(t => t.date <= today);
+    if (due.length === 0) return;
+    due.forEach(t => {
+      addTask(t.text);
+      deleteFutureTask(t.id);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Calendar shows live + archived planets so previous days remain visible.
   const allPlanets = [...planets, ...historicalPlanets];
