@@ -19,7 +19,7 @@ interface AppHeaderProps {
 }
 
 export default function AppHeader({ onSettingsOpen, onPhysicsOpen, showPhysics, tabLabel }: AppHeaderProps) {
-  const dayIndex = 2; // Forced Shakespeare for testing
+  const dayIndex = Math.floor(Date.now() / 86400000) % DAILY_QUOTES.length;
   const [quote, author] = DAILY_QUOTES[dayIndex];
   const quoteRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

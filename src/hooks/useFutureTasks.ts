@@ -19,9 +19,9 @@ export function useFutureTasks() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
   }, [tasks]);
 
-  const addTask = useCallback((date: string, text: string) => {
+  const addTask = useCallback((date: string, text: string, size: 1 | 2 | 3 | 4 | 5 = 3) => {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-    setTasks(prev => [...prev, { id, date, text }]);
+    setTasks(prev => [...prev, { id, date, text, size }]);
   }, []);
 
   const deleteTask = useCallback((id: string) => {

@@ -66,6 +66,17 @@ export interface FutureTask {
   id: string;
   date: string; // YYYY-MM-DD
   text: string;
+  size?: 1 | 2 | 3 | 4 | 5;
+}
+
+export interface RecurringTask {
+  id: string;
+  text: string;
+  size: 1 | 2 | 3 | 4 | 5;
+  frequency?: 'daily' | 'interval' | 'weekdays';
+  interval?: number;      // for 'interval': every N days
+  weekdays?: number[];    // for 'weekdays': 0=Mon … 6=Sun
+  startDate?: string;     // YYYY-MM-DD
 }
 
 export type TabId = 'tasks' | 'projects' | 'calendar' | 'groups' | 'trackers';

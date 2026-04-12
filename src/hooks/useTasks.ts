@@ -98,11 +98,11 @@ export function useTasks(onWipe?: (tasks: Task[]) => void, resetHour: number = 3
   useEffect(() => { save(STORAGE_KEYS.planets, planets); }, [planets]);
   useEffect(() => { save(STORAGE_KEYS.completedStack, completedStack); }, [completedStack]);
 
-  const addTask = useCallback((text: string, customColor?: string, projectId?: string) => {
+  const addTask = useCallback((text: string, customColor?: string, projectId?: string, size: 1 | 2 | 3 | 4 | 5 = 1) => {
     const newTask: Task = {
       id: generateId(),
       text,
-      size: 1, // default smallest
+      size,
       createdAt: Date.now(),
       order: Date.now(),
       customColor,

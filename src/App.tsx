@@ -23,7 +23,7 @@ import { useFutureTasks } from './hooks/useFutureTasks';
 import PhysicsModal from './components/PhysicsModal';
 
 export default function App() {
-  const { settings, visibleTabs, updateAccent, updateTheme, setNavEnabled, moveTab, updateResetHour } = useSettings();
+  const { settings, visibleTabs, updateAccent, updateTheme, setNavEnabled, moveTab, updateResetHour, addRecurringTask, updateRecurringTask, deleteRecurringTask } = useSettings();
 
   const {
     projects,
@@ -99,17 +99,47 @@ export default function App() {
   };
 
   // Import any future tasks whose date has arrived into the main task list.
+  // Also inject recurring tasks if they haven't been added today.
   // Runs once on mount (after the daily wipe effect has had a chance to clear tasks).
   const hasImportedFutureTasks = useRef(false);
   useEffect(() => {
     if (hasImportedFutureTasks.current) return;
     hasImportedFutureTasks.current = true;
     const today = logicalDay(Date.now());
+
+    // Future tasks due today or earlier
     const due = futureTasks.filter(t => t.date <= today);
-    if (due.length === 0) return;
     due.forEach(t => {
-      addTask(t.text);
+      addTask(t.text, undefined, undefined, t.size ?? 1);
       deleteFutureTask(t.id);
+    });
+
+    // Recurring tasks — check each one independently based on its schedule
+    settings.recurringTasks.forEach(rt => {
+      if (!rt.frequency || !rt.startDate) return;
+      if (rt.startDate > today) return;
+
+      const lastKey = `pathway-recurring-${rt.id}-last`;
+      if (localStorage.getItem(lastKey) === today) return;
+
+      let shouldRun = false;
+      if (rt.frequency === 'daily') {
+        shouldRun = true;
+      } else if (rt.frequency === 'interval' && rt.interval) {
+        const startMs = new Date(rt.startDate).getTime();
+        const todayMs = new Date(today).getTime();
+        const days = Math.round((todayMs - startMs) / 86400000);
+        shouldRun = days % rt.interval === 0;
+      } else if (rt.frequency === 'weekdays' && rt.weekdays?.length) {
+        const jsDay = new Date(today + 'T00:00:00').getDay(); // 0=Sun
+        const mondayBased = (jsDay + 6) % 7; // 0=Mon…6=Sun
+        shouldRun = rt.weekdays.includes(mondayBased);
+      }
+
+      if (shouldRun) {
+        addTask(rt.text, undefined, undefined, rt.size);
+        localStorage.setItem(lastKey, today);
+      }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -187,6 +217,9 @@ export default function App() {
           onNavEnabledChange={setNavEnabled}
           onMoveTab={moveTab}
           onUpdateResetHour={updateResetHour}
+          onAddRecurringTask={addRecurringTask}
+          onUpdateRecurringTask={updateRecurringTask}
+          onDeleteRecurringTask={deleteRecurringTask}
         />
       )}
 

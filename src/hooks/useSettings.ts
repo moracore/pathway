@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { TabId } from '../types';
+import type { TabId, RecurringTask } from '../types';
 
 export interface AppSettings {
   accentColor: string;
@@ -7,6 +7,7 @@ export interface AppSettings {
   navOrder: TabId[];
   navEnabled: Record<TabId, boolean>;
   resetHour: number;
+  recurringTasks: RecurringTask[];
 }
 
 const DEFAULTS: AppSettings = {
@@ -15,6 +16,7 @@ const DEFAULTS: AppSettings = {
   navOrder: ['tasks', 'projects', 'calendar', 'groups', 'trackers'],
   navEnabled: { tasks: true, projects: true, calendar: true, groups: true, trackers: true },
   resetHour: 3,
+  recurringTasks: [],
 };
 
 // ── Colour derivation ──────────────────────────────────────────────────────
@@ -77,6 +79,7 @@ function load(): AppSettings {
       navOrder,
       navEnabled: { ...DEFAULTS.navEnabled, ...(parsed.navEnabled ?? {}), projects: true },
       resetHour: parsed.resetHour ?? DEFAULTS.resetHour,
+      recurringTasks: parsed.recurringTasks ?? DEFAULTS.recurringTasks,
     };
   } catch {
     return DEFAULTS;
@@ -113,10 +116,27 @@ export function useSettings() {
 
   const updateResetHour = (hour: number) => setSettings(s => ({ ...s, resetHour: hour }));
 
+  const addRecurringTask = (text: string, size: 1 | 2 | 3 | 4 | 5) => {
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    setSettings(s => ({ ...s, recurringTasks: [...s.recurringTasks, { id, text, size }] }));
+  };
+
+  const updateRecurringTask = (id: string, updates: Partial<Omit<RecurringTask, 'id'>>) => {
+    setSettings(s => ({
+      ...s,
+      recurringTasks: s.recurringTasks.map(t => t.id === id ? { ...t, ...updates } : t),
+    }));
+  };
+
+  const deleteRecurringTask = (id: string) => {
+    setSettings(s => ({ ...s, recurringTasks: s.recurringTasks.filter(t => t.id !== id) }));
+  };
+
   // Visible tabs in order
   const visibleTabs = settings.navOrder.filter(id => settings.navEnabled[id]);
 
-  return { 
-    settings, visibleTabs, updateAccent, updateTheme, setNavEnabled, moveTab, updateResetHour
+  return {
+    settings, visibleTabs, updateAccent, updateTheme, setNavEnabled, moveTab, updateResetHour,
+    addRecurringTask, updateRecurringTask, deleteRecurringTask,
   };
 }

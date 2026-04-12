@@ -251,13 +251,14 @@ interface CalendarProps {
   resetHour?: number;
   onSelectDate?: (dateISO: string) => void;
   futureTasks?: FutureTask[];
-  onAddFutureTask?: (date: string, text: string) => void;
+  onAddFutureTask?: (date: string, text: string, size: 1 | 2 | 3 | 4 | 5) => void;
   onDeleteFutureTask?: (id: string) => void;
   getTasksForDate?: (date: string) => FutureTask[];
 }
 
 export default function Calendar({ planets, resetHour = 3, onSelectDate, futureTasks = [], onAddFutureTask, onDeleteFutureTask, getTasksForDate }: CalendarProps) {
   const currentWeekRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const configuredPassword = localStorage.getItem('pathway-calendar-password');
   const [isUnlocked, setIsUnlocked] = useState(calendarSessionUnlocked);
   const [showPinModal, setShowPinModal] = useState(false);
@@ -267,6 +268,7 @@ export default function Calendar({ planets, resetHour = 3, onSelectDate, futureT
   // Future task modal
   const [futureTaskDate, setFutureTaskDate] = useState<string | null>(null);
   const [futureTaskInput, setFutureTaskInput] = useState('');
+  const [futureTaskSize, setFutureTaskSize] = useState<1 | 2 | 3 | 4 | 5>(3);
 
   // Long-press handling
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -280,6 +282,7 @@ export default function Calendar({ planets, resetHour = 3, onSelectDate, futureT
       longPressFiredRef.current = true;
       setFutureTaskDate(dateISO);
       setFutureTaskInput('');
+      setFutureTaskSize(3);
     }, 2000);
   };
 
@@ -325,8 +328,10 @@ export default function Calendar({ planets, resetHour = 3, onSelectDate, futureT
   };
 
   useEffect(() => {
-    if (currentWeekRef.current) {
-      currentWeekRef.current.scrollIntoView({ block: 'center', behavior: 'instant' });
+    const container = scrollRef.current;
+    const row = currentWeekRef.current;
+    if (container && row) {
+      container.scrollTop = row.offsetTop - container.clientHeight / 2 + row.clientHeight / 2;
     }
   }, []);
 
@@ -339,8 +344,8 @@ export default function Calendar({ planets, resetHour = 3, onSelectDate, futureT
     dayPlanets[dStr].push(p);
   });
 
-  const weeksBack = 26;
-  const weeksForward = 12;
+  const weeksBack = 13;
+  const weeksForward = 13;
   const weeks = buildWeekRows(weeksBack, weeksForward, resetHour);
   const currentWeekIdx = weeksBack;
 
@@ -405,14 +410,14 @@ export default function Calendar({ planets, resetHour = 3, onSelectDate, futureT
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, position: 'relative' }}>
       
       {/* Weekday labels */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 8, padding: '12px 16px 0', position: 'relative', zIndex: 2 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 8, padding: '12px 16px 0', position: 'relative', zIndex: 2, userSelect: 'none' }}>
         {WEEKDAY_LABELS.map((d) => (
           <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'var(--clr-text-muted)', letterSpacing: '0.04em' }}>{d}</div>
         ))}
       </div>
 
       {/* Scrollable calendar */}
-      <div className="cal-scroll" style={{ position: 'relative', zIndex: 1 }}>
+      <div ref={scrollRef} className="cal-scroll" style={{ position: 'relative', zIndex: 1, userSelect: 'none' }}>
         <div style={{ padding: '0 10px 32px', position: 'relative' }}>
           
           {/* Overlay physics canvas locked to this scrollable document */}
@@ -474,7 +479,7 @@ export default function Calendar({ planets, resetHour = 3, onSelectDate, futureT
                         className="cal-day-cell"
                         style={{ opacity: dimFuture ? 0.32 : 1 }}
                         {...longPressProps}
-                        onClick={() => { if (hasFutureTasks && cell.isFuture && !longPressFiredRef.current) { setFutureTaskDate(cell.date); setFutureTaskInput(''); } }}
+                        onClick={() => { if (hasFutureTasks && cell.isFuture && !longPressFiredRef.current) { setFutureTaskDate(cell.date); setFutureTaskInput(''); setFutureTaskSize(3); } }}
                       >
                         <div className={cls} style={{ position: 'relative' }}>
                           <span>{label}</span>
@@ -525,37 +530,52 @@ export default function Calendar({ planets, resetHour = 3, onSelectDate, futureT
             )}
           </div>
 
-          <div style={{ padding: '16px 20px', borderTop: '1px solid var(--clr-border)', display: 'flex', gap: 10, flexShrink: 0 }}>
-            <input
-              type="text"
-              value={futureTaskInput}
-              onChange={e => setFutureTaskInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && futureTaskInput.trim()) {
-                  onAddFutureTask?.(futureTaskDate, futureTaskInput.trim());
-                  setFutureTaskInput('');
-                }
-              }}
-              placeholder="Add a task..."
-              style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: '1px solid var(--clr-border)', background: 'var(--clr-surface-raised)', color: 'var(--clr-text-primary)', fontSize: 14, outline: 'none' }}
-              autoFocus
-            />
-            <button
-              onClick={() => {
-                if (futureTaskInput.trim()) {
-                  onAddFutureTask?.(futureTaskDate, futureTaskInput.trim());
-                  setFutureTaskInput('');
-                }
-              }}
-              disabled={!futureTaskInput.trim()}
-              style={{
-                background: futureTaskInput.trim() ? 'var(--clr-base)' : 'var(--clr-surface-raised)',
-                border: 'none', borderRadius: 10, padding: '10px 14px', cursor: futureTaskInput.trim() ? 'pointer' : 'default',
-                color: futureTaskInput.trim() ? '#fff' : 'var(--clr-text-muted)', display: 'flex', alignItems: 'center'
-              }}
-            >
-              <Plus size={18} />
-            </button>
+          <div style={{ padding: '12px 20px 0', borderTop: '1px solid var(--clr-border)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: 'var(--clr-text-muted)', fontWeight: 600, letterSpacing: '0.04em', marginRight: 4 }}>WEIGHT</span>
+              <div className="size-dots">
+                {([1, 2, 3, 4, 5] as const).map(s => (
+                  <button
+                    key={s}
+                    className={`size-dot${futureTaskSize >= s ? ' active' : ''}`}
+                    style={{ width: 6 + s * 3, height: 6 + s * 3 }}
+                    onClick={() => setFutureTaskSize(s)}
+                  />
+                ))}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, paddingBottom: 16 }}>
+              <input
+                type="text"
+                value={futureTaskInput}
+                onChange={e => setFutureTaskInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && futureTaskInput.trim()) {
+                    onAddFutureTask?.(futureTaskDate, futureTaskInput.trim(), futureTaskSize);
+                    setFutureTaskInput('');
+                  }
+                }}
+                placeholder="Add a task..."
+                style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: '1px solid var(--clr-border)', background: 'var(--clr-surface-raised)', color: 'var(--clr-text-primary)', fontSize: 14, outline: 'none' }}
+                autoFocus
+              />
+              <button
+                onClick={() => {
+                  if (futureTaskInput.trim()) {
+                    onAddFutureTask?.(futureTaskDate, futureTaskInput.trim(), futureTaskSize);
+                    setFutureTaskInput('');
+                  }
+                }}
+                disabled={!futureTaskInput.trim()}
+                style={{
+                  background: futureTaskInput.trim() ? 'var(--clr-base)' : 'var(--clr-surface-raised)',
+                  border: 'none', borderRadius: 10, padding: '10px 14px', cursor: futureTaskInput.trim() ? 'pointer' : 'default',
+                  color: futureTaskInput.trim() ? '#fff' : 'var(--clr-text-muted)', display: 'flex', alignItems: 'center'
+                }}
+              >
+                <Plus size={18} />
+              </button>
+            </div>
           </div>
         </div>
       )}
