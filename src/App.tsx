@@ -120,6 +120,7 @@ export default function App() {
     settings.recurringTasks.forEach(rt => {
       if (!rt.frequency || !rt.startDate) return;
       if (rt.startDate > today) return;
+      if (rt.stopDate && rt.stopDate < today) return;
 
       const lastKey = `pathway-recurring-${rt.id}-last`;
       if (localStorage.getItem(lastKey) === today) return;

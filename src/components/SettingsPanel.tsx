@@ -58,6 +58,8 @@ export default function SettingsPanel({
   const [editInterval, setEditInterval] = useState(2);
   const [editWeekdays, setEditWeekdays] = useState<number[]>([]);
   const [editStartDate, setEditStartDate] = useState('');
+  const [editStopDate, setEditStopDate] = useState('');
+  const [editNoStopDate, setEditNoStopDate] = useState(true);
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressFired = useRef(false);
@@ -67,6 +69,8 @@ export default function SettingsPanel({
     setEditInterval(task.interval ?? 2);
     setEditWeekdays(task.weekdays ?? []);
     setEditStartDate(task.startDate ?? new Date().toISOString().slice(0, 10));
+    setEditStopDate(task.stopDate ?? '');
+    setEditNoStopDate(!task.stopDate);
     setConfigTask(task);
   }
 
@@ -92,6 +96,7 @@ export default function SettingsPanel({
       interval: editFreq === 'interval' ? editInterval : undefined,
       weekdays: editFreq === 'weekdays' ? editWeekdays : undefined,
       startDate: editStartDate || undefined,
+      stopDate: editNoStopDate ? undefined : (editStopDate || undefined),
     });
     setConfigTask(null);
   }
@@ -352,6 +357,29 @@ export default function SettingsPanel({
                 onChange={e => setEditStartDate(e.target.value)}
                 style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--clr-border)', background: 'var(--clr-surface-raised)', color: 'var(--clr-text-primary)', fontSize: 14, outline: 'none' }}
               />
+            </div>
+
+            {/* Stop date */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--clr-text-primary)' }}>End date</span>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={editNoStopDate}
+                  onChange={e => setEditNoStopDate(e.target.checked)}
+                  style={{ width: 16, height: 16, accentColor: 'var(--clr-base)', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: 14, color: 'var(--clr-text-primary)' }}>No end date</span>
+              </label>
+              {!editNoStopDate && (
+                <input
+                  type="date"
+                  value={editStopDate}
+                  min={editStartDate}
+                  onChange={e => setEditStopDate(e.target.value)}
+                  style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--clr-border)', background: 'var(--clr-surface-raised)', color: 'var(--clr-text-primary)', fontSize: 14, outline: 'none' }}
+                />
+              )}
             </div>
           </div>
 

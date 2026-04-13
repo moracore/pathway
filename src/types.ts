@@ -77,6 +77,7 @@ export interface RecurringTask {
   interval?: number;      // for 'interval': every N days
   weekdays?: number[];    // for 'weekdays': 0=Mon … 6=Sun
   startDate?: string;     // YYYY-MM-DD
+  stopDate?: string;      // YYYY-MM-DD — inclusive last day; undefined = no end
 }
 
 export type TabId = 'tasks' | 'projects' | 'calendar' | 'groups' | 'trackers';
