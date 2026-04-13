@@ -98,23 +98,25 @@ export default function App() {
     return `${y}-${m}-${dNum}`;
   };
 
-  // Import any future tasks whose date has arrived into the main task list.
-  // Also inject recurring tasks if they haven't been added today.
-  // Runs once on mount (after the daily wipe effect has had a chance to clear tasks).
+  // Import future tasks whose date has arrived — runs once on mount.
   const hasImportedFutureTasks = useRef(false);
   useEffect(() => {
     if (hasImportedFutureTasks.current) return;
     hasImportedFutureTasks.current = true;
     const today = logicalDay(Date.now());
-
-    // Future tasks due today or earlier
     const due = futureTasks.filter(t => t.date <= today);
     due.forEach(t => {
       addTask(t.text, undefined, undefined, t.size ?? 1);
       deleteFutureTask(t.id);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    // Recurring tasks — check each one independently based on its schedule
+  // Inject recurring tasks that are due today. Reruns whenever the recurring
+  // task list changes so newly configured tasks are picked up immediately.
+  // The localStorage guard prevents duplicate additions within the same day.
+  useEffect(() => {
+    const today = logicalDay(Date.now());
     settings.recurringTasks.forEach(rt => {
       if (!rt.frequency || !rt.startDate) return;
       if (rt.startDate > today) return;
@@ -125,9 +127,9 @@ export default function App() {
       let shouldRun = false;
       if (rt.frequency === 'daily') {
         shouldRun = true;
-      } else if (rt.frequency === 'interval' && rt.interval) {
-        const startMs = new Date(rt.startDate).getTime();
-        const todayMs = new Date(today).getTime();
+      } else if (rt.frequency === 'interval' && rt.interval && rt.interval > 0) {
+        const startMs = new Date(rt.startDate + 'T00:00:00').getTime();
+        const todayMs = new Date(today + 'T00:00:00').getTime();
         const days = Math.round((todayMs - startMs) / 86400000);
         shouldRun = days % rt.interval === 0;
       } else if (rt.frequency === 'weekdays' && rt.weekdays?.length) {
@@ -142,7 +144,7 @@ export default function App() {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [settings.recurringTasks]);
 
   // Calendar shows live + archived planets so previous days remain visible.
   const allPlanets = [...planets, ...historicalPlanets];
